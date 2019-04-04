@@ -53,6 +53,12 @@ class GroupsServerHandler(object):
         hs.get_groups_attestation_renewer()
 
     @defer.inlineCallbacks
+    def check_group_is_subgroup_equals(self, group_id, subgroup_id):
+        if group_id == subgroup_id:
+            raise SynapseError(400, "Group can not be subgroup of itself")
+        yield None
+
+    @defer.inlineCallbacks
     def check_group_is_ours(self, group_id, requester_user_id,
                             and_exists=False, and_is_admin=None):
         """Check that the group is ours, and optionally if it exists.
@@ -274,6 +280,48 @@ class GroupsServerHandler(object):
             is_public=is_public,
             profile=profile,
         )
+
+        defer.returnValue({})
+
+    @defer.inlineCallbacks
+    def update_subgroups(self, group_id, requester_user_id, content):
+        """Add/Update subgroups
+        """
+        '''TODO : check if the group already is subgroup'''
+        yield self.check_group_is_ours(
+            group_id,
+            requester_user_id,
+            and_exists=True,
+            and_is_admin=requester_user_id,
+        )
+
+        subgroups = content.get("subgroups")
+
+        ancestors = yield self.store.get_ancestors_by_group_id(
+            group_id)
+
+        for subgroup_id in subgroups:
+            yield self.check_group_is_ours(
+                subgroup_id,
+                requester_user_id,
+                and_exists=True,
+                and_is_admin=requester_user_id,
+            )
+
+            yield self.check_group_is_subgroup_equals(
+                group_id, subgroup_id)
+
+            yield self.store.upsert_subgroup(
+                group_id=group_id,
+                subgroup_id=subgroup_id,
+            )
+
+            if ancestors is not None:
+                for ancestor in ancestors:
+                    yield self.store.upsert_subgroup(
+                        group_id=ancestor,
+                        subgroup_id=subgroup_id,
+                    )
 
         defer.returnValue({})
 
@@ -858,6 +906,10 @@ class GroupsServerHandler(object):
             avatar_url=avatar_url,
             short_description=short_description,
             long_description=long_description,
+        )
+
+        yield self.store.upsert_subgroup(
+            group_id=group_id, subgroup_id=group_id
         )
 
         if not self.hs.is_mine_id(requester_user_id):

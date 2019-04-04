@@ -370,6 +370,20 @@ class GroupServerStore(SQLBaseStore):
             desc="upsert_group_category",
         )
 
+    def upsert_subgroup(self, group_id, subgroup_id):
+        """Add/update subgroups
+        """
+
+        return self._simple_upsert(
+            table="tree_paths",
+            keyvalues={
+                "ancestor": group_id,
+                "descendant": subgroup_id,
+            },
+            values={},
+            desc="upsert_subgroup",
+        )
+
     def remove_group_category(self, group_id, category_id):
         return self._simple_delete(
             table="group_room_categories",
@@ -379,6 +393,22 @@ class GroupServerStore(SQLBaseStore):
             },
             desc="remove_group_category",
         )
+
+    @defer.inlineCallbacks
+    def get_ancestors_by_group_id(self, group_id):
+        rows = yield self._simple_select_list(
+            table="tree_paths",
+            keyvalues={
+                "descendant": group_id,
+            },
+            retcols=("ancestor", "descendant"),
+            desc="get_ancestors_by_group_id",
+        )
+
+        defer.returnValue({
+            row["ancestor"]
+            for row in rows
+        })
 
     @defer.inlineCallbacks
     def get_group_roles(self, group_id):

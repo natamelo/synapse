@@ -38,3 +38,7 @@ _trial_temp*/
 /htmlcov
 /pip-wheel-metadata/
 
+.DS_Store
+docs/.DS_Store
+synapse/.idea/
+

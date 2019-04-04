@@ -134,6 +134,33 @@ class GroupSummaryRoomsCatServlet(RestServlet):
         defer.returnValue((200, resp))
 
 
+class GroupSubgroupServlet(RestServlet):
+    """Get/add/update/delete a subgroup
+    """
+    PATTERNS = client_v2_patterns(
+        "/groups/(?P<group_id>[^/]*)/subgroups$"
+    )
+
+    def __init__(self, hs):
+        super(GroupSubgroupServlet, self).__init__()
+        self.auth = hs.get_auth()
+        self.clock = hs.get_clock()
+        self.groups_handler = hs.get_groups_local_handler()
+
+    @defer.inlineCallbacks
+    def on_PUT(self, request, group_id):
+        requester = yield self.auth.get_user_by_req(request)
+        requester_user_id = requester.user.to_string()
+
+        content = parse_json_object_from_request(request)
+        resp = yield self.groups_handler.update_subgroups(
+            group_id, requester_user_id,
+            content=content,
+        )
+
+        defer.returnValue((200, resp))
+
+
 class GroupCategoryServlet(RestServlet):
     """Get/add/update/delete a group category
     """
@@ -776,6 +803,7 @@ def register_servlets(hs, http_server):
     GroupSelfAcceptInviteServlet(hs).register(http_server)
     GroupsForUserServlet(hs).register(http_server)
     GroupCategoryServlet(hs).register(http_server)
+    GroupSubgroupServlet(hs).register(http_server)
     GroupCategoriesServlet(hs).register(http_server)
     GroupSummaryRoomsCatServlet(hs).register(http_server)
     GroupRoleServlet(hs).register(http_server)
