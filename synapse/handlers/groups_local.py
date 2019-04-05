@@ -116,6 +116,7 @@ class GroupsLocalHandler(object):
     set_group_join_policy = _create_rerouter("set_group_join_policy")
 
     update_subgroups = _create_rerouter("update_subgroups")
+    get_subgroups = _create_rerouter("get_subgroups")
 
     @defer.inlineCallbacks
     def get_group_summary(self, group_id, requester_user_id):

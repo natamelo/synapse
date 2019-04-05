@@ -160,6 +160,17 @@ class GroupSubgroupServlet(RestServlet):
 
         defer.returnValue((200, resp))
 
+    @defer.inlineCallbacks
+    def on_GET(self, request, group_id):
+        requester = yield self.auth.get_user_by_req(request, allow_guest=True)
+        requester_user_id = requester.user.to_string()
+
+        group = yield self.groups_handler.get_subgroups(
+            group_id, requester_user_id
+        )
+
+        defer.returnValue((200, group))
+
 
 class GroupCategoryServlet(RestServlet):
     """Get/add/update/delete a group category

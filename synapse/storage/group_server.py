@@ -370,18 +370,64 @@ class GroupServerStore(SQLBaseStore):
             desc="upsert_group_category",
         )
 
-    def upsert_subgroup(self, group_id, subgroup_id):
+    def upsert_subgroup(self, group_id, subgroup_id, path_length):
         """Add/update subgroups
         """
-
         return self._simple_upsert(
             table="tree_paths",
             keyvalues={
                 "ancestor": group_id,
                 "descendant": subgroup_id,
             },
-            values={},
+            values={"path_length": path_length},
             desc="upsert_subgroup",
+        )
+
+    def get_subgroups(self, group_id, path_length):
+        """Get all subgroups immediately below of group_id
+        """
+
+        def _get_subgroups(txn):
+            sql = """
+                SELECT groups.group_id AS group_id, groups.name AS name
+                FROM groups
+                INNER JOIN tree_paths AS tree ON groups.group_id = tree.descendant
+                WHERE tree.ancestor = ? and tree.path_length = ?;
+            """
+
+            txn.execute(sql, (group_id,path_length,))
+
+            subgroups = [
+                {
+                    "group_id": row[0],
+                    "description": row[1],
+                }
+                for row in txn
+            ]
+            return subgroups
+
+        return self.runInteraction(
+            "get_subgroups", _get_subgroups
+        )
+
+    def get_path_length(self, group_parent, ancestor):
+        """Get path length
+        """
+
+        def _get_path_length(txn):
+            return self._simple_select_one_onecol_txn(
+                txn,
+                table="tree_paths",
+                keyvalues={
+                    "descendant": group_parent,
+                    "ancestor": ancestor,
+                },
+                retcol="path_length",
+                allow_none=True,
+            )
+
+        return self.runInteraction(
+            "get_path_length", _get_path_length
         )
 
     def remove_group_category(self, group_id, category_id):

@@ -314,16 +314,38 @@ class GroupsServerHandler(object):
             yield self.store.upsert_subgroup(
                 group_id=group_id,
                 subgroup_id=subgroup_id,
+                path_length=1
             )
 
             if ancestors is not None:
                 for ancestor in ancestors:
+                    path_length = yield self.store.get_path_length(group_id, ancestor)
+
                     yield self.store.upsert_subgroup(
                         group_id=ancestor,
                         subgroup_id=subgroup_id,
+                        path_length=path_length + 1,
                     )
 
         defer.returnValue({})
+
+    @defer.inlineCallbacks
+    def get_subgroups(self, group_id, requester_user_id):
+        """Get all groups
+        """
+
+        yield self.check_group_is_ours(
+            group_id,
+            requester_user_id,
+            and_exists=True,
+            and_is_admin=requester_user_id,
+        )
+
+        subgroups = yield self.store.get_subgroups(
+            group_id=group_id,
+            path_length=1
+        )
+        defer.returnValue({"subgroups": subgroups})
 
     @defer.inlineCallbacks
     def delete_group_category(self, group_id, requester_user_id, category_id):
@@ -909,7 +931,7 @@ class GroupsServerHandler(object):
         )
 
         yield self.store.upsert_subgroup(
-            group_id=group_id, subgroup_id=group_id
+            group_id=group_id, subgroup_id=group_id, path_length=0
         )
 
         if not self.hs.is_mine_id(requester_user_id):
