@@ -151,4 +151,7 @@ class UserTypes(object):
     'admin' and 'guest' users should also be UserTypes. Normal users are type None
     """
     SUPPORT = "support"
-    ALL_USER_TYPES = (SUPPORT,)
+    CTEEP = "cteep"
+    ONS = "ons"
+    SUBESTACAO = "subestacao"
+    ALL_USER_TYPES = (SUPPORT, CTEEP, ONS, SUBESTACAO, )
