@@ -395,7 +395,7 @@ class GroupServerStore(SQLBaseStore):
                 WHERE tree.ancestor = ? and tree.path_length = ?;
             """
 
-            txn.execute(sql, (group_id,path_length,))
+            txn.execute(sql, (group_id, path_length,))
 
             subgroups = [
                 {

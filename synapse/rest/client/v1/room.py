@@ -190,6 +190,7 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
     def __init__(self, hs):
         super(RoomSendEventRestServlet, self).__init__(hs)
         self.event_creation_handler = hs.get_event_creation_handler()
+        self.room_solicitation_handler = hs.get_room_solicitation_handler()
 
     def register(self, http_server):
         # /rooms/$roomid/send/$event_type[/$txn_id]
@@ -216,6 +217,12 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             event_dict,
             txn_id=txn_id,
         )
+
+        if content is not None and 'body' in content and 'm.relates_to' not in content and 'Solicitação' in content['body']:
+            self.room_solicitation_handler.create_solicitation(event_id=event.event_id, state='ABERTO')
+        elif 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
+            event_id = content['m.relates_to']['m.in_reply_to']['event_id']
+            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='CIENTE')
 
         defer.returnValue((200, {"event_id": event.event_id}))
 

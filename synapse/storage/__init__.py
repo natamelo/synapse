@@ -48,6 +48,7 @@ from .receipts import ReceiptsStore
 from .registration import RegistrationStore
 from .rejections import RejectionsStore
 from .room import RoomStore
+from .room_solicitation import RoomSolicitationStore
 from .roommember import RoomMemberStore
 from .search import SearchStore
 from .signatures import SignatureStore
@@ -89,6 +90,7 @@ class DataStore(RoomMemberStore, RoomStore,
                 GroupServerStore,
                 UserErasureStore,
                 MonthlyActiveUsersStore,
+                RoomSolicitationStore,
                 ):
 
     def __init__(self, db_conn, hs):
@@ -116,6 +118,8 @@ class DataStore(RoomMemberStore, RoomStore,
         self._device_list_id_gen = StreamIdGenerator(
             db_conn, "device_lists_stream", "stream_id",
         )
+
+        self._solicitation_list_id_gen = IdGenerator(db_conn, "solicitations", "id")
 
         self._access_tokens_id_gen = IdGenerator(db_conn, "access_tokens", "id")
         self._event_reports_id_gen = IdGenerator(db_conn, "event_reports", "id")

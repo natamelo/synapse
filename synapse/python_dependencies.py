@@ -74,7 +74,7 @@ REQUIREMENTS = [
 CONDITIONAL_REQUIREMENTS = {
     "email.enable_notifs": ["Jinja2>=2.9", "bleach>=1.4.2"],
     "matrix-synapse-ldap3": ["matrix-synapse-ldap3>=0.1"],
-    "postgres": ["psycopg2>=2.6"],
+    #"postgres": ["psycopg2>=2.8.2"],
 
     # ConsentResource uses select_autoescape, which arrived in jinja 2.9
     "resources.consent": ["Jinja2>=2.9"],

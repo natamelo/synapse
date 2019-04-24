@@ -10,6 +10,7 @@ import synapse.handlers.device
 import synapse.handlers.e2e_keys
 import synapse.handlers.message
 import synapse.handlers.room
+import synapse.handlers.room_solicitation
 import synapse.handlers.room_member
 import synapse.handlers.set_password
 import synapse.rest.media.v1.media_repository
@@ -80,3 +81,7 @@ class HomeServer(object):
 
     def get_server_notices_sender(self) -> synapse.server_notices.server_notices_sender.ServerNoticesSender:
         pass
+
+    def get_room_solicitation_handler(self) -> synapse.handlers.room_solicitation.RoomSolicitationHandler:
+        pass
+

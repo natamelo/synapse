@@ -115,7 +115,7 @@ def register_new_user(user, password, server_location, shared_secret, admin, use
         sys.exit(1)
 
     if not user_type:
-        user_type = input("User Type (cteep, ons or subestacao) :")
+        user_type = input("User Type (cteep, ons or subestacao): ")
 
     if not password:
         password = getpass.getpass("Password: ")
