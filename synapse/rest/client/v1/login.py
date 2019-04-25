@@ -99,6 +99,7 @@ class LoginRestServlet(ClientV1RestServlet):
         self.handlers = hs.get_handlers()
         self._well_known_builder = WellKnownBuilder(hs)
         self._address_ratelimiter = Ratelimiter()
+        self.store = hs.get_datastore()
 
     def on_GET(self, request):
         flows = []
@@ -276,11 +277,14 @@ class LoginRestServlet(ClientV1RestServlet):
             user_id, device_id, initial_display_name,
         )
 
+        user = yield self.store.get_user_by_id(user_id);
+
         result = {
             "user_id": user_id,
             "access_token": access_token,
             "home_server": self.hs.hostname,
             "device_id": device_id,
+            "user_type": user['user_type']
         }
 
         if callback is not None:
