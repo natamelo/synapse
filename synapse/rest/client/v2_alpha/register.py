@@ -249,6 +249,11 @@ class RegisterRestServlet(RestServlet):
                 raise SynapseError(400, "Invalid username")
             desired_username = body['username']
 
+        user_type = None
+        if 'usertype' in body:
+            user_type = body['usertype']
+            user_type = user_type.lower()
+
         appservice = None
         if self.auth.has_access_token(request):
             appservice = yield self.auth.get_appservice_by_req(request)
@@ -435,6 +440,7 @@ class RegisterRestServlet(RestServlet):
                 generate_token=False,
                 threepid=threepid,
                 address=client_addr,
+                user_type=user_type
             )
             # Necessary due to auth checks prior to the threepid being
             # written to the db
