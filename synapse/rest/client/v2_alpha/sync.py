@@ -137,6 +137,7 @@ class SyncRestServlet(RestServlet):
         else:
             filter = DEFAULT_FILTER_COLLECTION
 
+
         sync_config = SyncConfig(
             user=user,
             filter_collection=filter,

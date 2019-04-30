@@ -31,6 +31,9 @@ from . import EventBase
 SPLIT_FIELD_REGEX = re.compile(r'(?<!\\)\.')
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 def prune_event(event):
     """ Returns a pruned version of the given event, which removes all keys we
     don't know about or think could potentially be dodgy.

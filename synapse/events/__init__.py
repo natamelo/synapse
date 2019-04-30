@@ -34,6 +34,8 @@ from synapse.util.frozenutils import freeze
 # homeserver object itself.
 USE_FROZEN_DICTS = strtobool(os.environ.get("SYNAPSE_USE_FROZEN_DICTS", "0"))
 
+import logging
+logger = logging.getLogger(__name__)
 
 class _EventInternalMetadata(object):
     def __init__(self, internal_metadata_dict):

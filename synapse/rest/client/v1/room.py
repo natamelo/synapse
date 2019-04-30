@@ -212,17 +212,29 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
         if b'ts' in request.args and requester.app_service:
             event_dict['origin_server_ts'] = parse_integer(request, "ts", 0)
 
-        event = yield self.event_creation_handler.create_and_send_nonmember_event(
-            requester,
-            event_dict,
-            txn_id=txn_id,
-        )
+        event = None
 
         if content is not None and 'body' in content and 'm.relates_to' not in content and 'Solicitação' in content['body']:
+            event_dict["content"]["status"] = "ABERTO"
+
+            event = yield self.event_creation_handler.create_and_send_nonmember_event(
+                requester,
+                event_dict,
+                txn_id=txn_id,
+            )
+
             self.room_solicitation_handler.create_solicitation(event_id=event.event_id, state='ABERTO')
+
         elif 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
             self.room_solicitation_handler.update_solicitation(event_id=event_id, state='CIENTE')
+
+        if event is not None:
+            event = yield self.event_creation_handler.create_and_send_nonmember_event(
+                requester,
+                event_dict,
+                txn_id=txn_id,
+            )
 
         defer.returnValue((200, {"event_id": event.event_id}))
 

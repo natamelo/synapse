@@ -276,7 +276,7 @@ class EventsWorkerStore(SQLBaseStore):
                 event_map[event_id] = ret
             else:
                 event_map[event_id] = None
-
+        ##AQUI
         return event_map
 
     def _do_fetch(self, conn):

@@ -1537,6 +1537,7 @@ class SyncHandler(object):
             limit=timeline_limit + 1,
         )
 
+
         # We loop through all room ids, even if there are no new events, in case
         # there are non room events taht we need to notify about.
         for room_id in sync_result_builder.joined_room_ids:
