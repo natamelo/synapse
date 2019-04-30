@@ -469,8 +469,10 @@ class RegisterRestServlet(RestServlet):
                 access_token=return_dict.get("access_token"),
                 bind_email=params.get("bind_email"),
                 bind_msisdn=params.get("bind_msisdn"),
+                user_type=user_type,
             )
 
+        return_dict.update({"user_type": user_type})
         defer.returnValue((200, return_dict))
 
     def on_OPTIONS(self, _):

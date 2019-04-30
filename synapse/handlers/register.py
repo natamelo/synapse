@@ -711,7 +711,7 @@ class RegistrationHandler(BaseHandler):
 
     @defer.inlineCallbacks
     def post_registration_actions(self, user_id, auth_result, access_token,
-                                  bind_email, bind_msisdn):
+                                  bind_email, bind_msisdn, user_type):
         """A user has completed registration
 
         Args:
@@ -724,6 +724,7 @@ class RegistrationHandler(BaseHandler):
                 server.
             bind_msisdn (bool): Whether to bind the msisdn with the identity
                 server.
+            user_type (str): The user type that consented
         """
         if self.hs.config.worker_app:
             yield self._post_registration_client(
