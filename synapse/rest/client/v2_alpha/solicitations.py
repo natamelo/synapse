@@ -45,6 +45,7 @@ class SolicitationsServlet(RestServlet):
         from_token = parse_string(request, "from", required=False)
         limit = parse_integer(request, "limit", default=50)
         only = parse_string(request, "only", required=False)
+        room_id = parse_string(request, "room_id", required=False)
 
         limit = min(limit, 500)
 
@@ -60,7 +61,7 @@ class SolicitationsServlet(RestServlet):
 
         #logger.info(receipts_by_room)
 
-        solicitations = yield self.store.get_solicitations()
+        solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
 
         event_id_list = [solicitation["event_id"] for solicitation in solicitations]
         notif_events = yield self.store.get_events(event_id_list)

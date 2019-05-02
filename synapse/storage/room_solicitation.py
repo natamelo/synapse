@@ -36,15 +36,15 @@ class RoomSolicitationStore(SQLBaseStore):
             raise StoreError(500, "Problem updating solicitation.")
 
     @defer.inlineCallbacks
-    def get_solicitations(self, user_id=None, before=None, limit=50,
-                                  only_highlight=False):
+    def get_solicitations(self, room_id, user_id=None, before=None,
+                            limit=50, only_highlight=False):
         def f(txn):
             before_clause = ""
             #if before:
             #    before_clause = "AND event.stream_ordering < ?"
             #    args = [user_id, before, limit]
             #else:
-            args = [limit]
+            args = [room_id, limit]
 
             #if only_highlight:
             #    if len(before_clause) > 0:
@@ -59,6 +59,7 @@ class RoomSolicitationStore(SQLBaseStore):
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
                 " WHERE solicitation.event_id = event.event_id and room_name.room_id = event.room_id"
+                " and event.room_id = ?"
                 " ORDER BY event.stream_ordering DESC"
                 " LIMIT ?"
                 #% (before_clause,)
