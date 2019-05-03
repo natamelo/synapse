@@ -16,7 +16,7 @@
 import logging
 
 from twisted.internet import defer
-from synapse.api.constants import ActionTypes, EquipmentTypes
+from synapse.api.constants import ActionTypes, EquipmentTypes, SubstationCode
 
 from synapse.events.utils import (
     format_event_for_client_v2_without_room_id,
@@ -138,6 +138,11 @@ class SolicitationSageCallRestServlet(RestServlet):
                 "error": "Invalid Equipment Type"
             }))
 
+        if substation_code not in SubstationCode.ALL_SUBSTATION_CODES:
+            defer.returnValue((400, {
+                "error": "Invalid Substation Code"
+            }))
+
         yield self.room_solicitation_handler.create_sage_call_solicitation(
             sender_user_id=sender_user_id,
             action=action,
@@ -146,7 +151,7 @@ class SolicitationSageCallRestServlet(RestServlet):
             equipment_code=equipment_code,
         )
 
-        defer.returnValue((200, {
+        defer.returnValue((201, {
             "Message": "Sage Call solicitation made by " + sender_user_id
         }))
 

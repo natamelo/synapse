@@ -166,4 +166,10 @@ class ActionTypes(object):
 class EquipmentTypes(object):
     REATOR = "REATOR"
     DISJUNTOR = "DISJUNTOR"
-    ALL_EQUIPMENT_TYPES = (REATOR, DISJUNTOR)
+    ALL_EQUIPMENT_TYPES = (REATOR, DISJUNTOR, )
+
+
+class SubstationCode(object):
+    ACD = "ACD"
+    CGD = "CGD"
+    ALL_SUBSTATION_CODES = (ACD, CGD, )
