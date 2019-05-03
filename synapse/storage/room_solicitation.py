@@ -73,3 +73,23 @@ class RoomSolicitationStore(SQLBaseStore):
         #for pa in push_actions:
         #    pa["actions"] = _deserialize_action(pa["actions"], pa["highlight"])
         defer.returnValue(solicitations)
+
+    def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
+                                      equipment_type, equipment_code):
+        try:
+            self._simple_insert(
+                table="solicitations",
+                values={
+                    "id": self._solicitation_list_id_gen.get_next(),
+                    "status": "CIENTE",
+                    "sender_user_id": sender_user_id,
+                    "action": action,
+                    "substation_code": substation_code,
+                    "equipment_type": equipment_type,
+                    "equipment_code": equipment_code,
+                }
+            )
+        except Exception as e:
+            logger.warning("create_sage_call_solicitation for sender_user=%s failed: %s", sender_user_id, e)
+            raise StoreError(500, "Problem creating solicitation.")
+
