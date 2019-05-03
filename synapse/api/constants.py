@@ -155,3 +155,15 @@ class UserTypes(object):
     ONS = "ons"
     SUBESTACAO = "subestacao"
     ALL_USER_TYPES = (SUPPORT, CTEEP, ONS, SUBESTACAO, )
+
+
+class ActionTypes(object):
+    LIGAR = "LIGAR"
+    DESLIGAR = "DESLIGAR"
+    ALL_ACTION_TYPES = (LIGAR, DESLIGAR, )
+
+
+class EquipmentTypes(object):
+    REATOR = "REATOR"
+    DISJUNTOR = "DISJUNTOR"
+    ALL_EQUIPMENT_TYPES = (REATOR, DISJUNTOR)
