@@ -103,6 +103,7 @@ matrixRegistration.signUp = function() {
         setFeedbackString("Passwords do not match.");
         return;
     }
+
     if (window.matrixRegistration.isUsingRecaptcha) {
         submitCaptcha(user, pwd1);
     }

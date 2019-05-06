@@ -35,3 +35,9 @@ class RoomSolicitationHandler(BaseHandler):
 
     def update_solicitation(self, event_id, state):
         self.store.update_solicitation(event_id=event_id, state=state)
+
+    def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
+                                      equipment_type, equipment_code):
+        self.store.create_sage_call_solicitation(sender_user_id=sender_user_id, action=action,
+                                                 substation_code=substation_code, equipment_type=equipment_type,
+                                                 equipment_code=equipment_code)
