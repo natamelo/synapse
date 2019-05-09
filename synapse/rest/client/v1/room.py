@@ -161,7 +161,7 @@ class RoomStateEventRestServlet(ClientV1RestServlet):
 
         if state_key is not None:
             event_dict["state_key"] = state_key
-
+        logger.info(">>srequester " + str(requester))
         if event_type == EventTypes.Member:
             membership = content.get("membership", None)
             event = yield self.room_member_handler.update_membership(
@@ -227,7 +227,12 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
 
         elif 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
-            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='CIENTE')
+            self.room_solicitation_handler.update_solicitation(requester=requester, event_id=event_id, state='CIENTE')
+
+            event_dict['content']["status"] = "CIENTE"
+            event_dict['content']["action"] = "update"
+            event_dict['content']["old_event_id"] = event_id;
+
 
         if event is None:
             event = yield self.event_creation_handler.create_and_send_nonmember_event(

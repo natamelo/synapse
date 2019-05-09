@@ -16,22 +16,34 @@
 
 import logging
 
+from synapse.api.errors import AuthError, NotFoundError
+
 from ._base import BaseHandler
 
-logger = logging.getLogger(__name__)
+from synapse.events.utils import (
+    format_event_for_client_v2_without_room_id,
+    serialize_event,
+)
 
+from twisted.internet import defer
+
+from synapse.events.builder import event_type_from_format_version, create_local_event_from_event_dict
+from synapse.api.constants import EventFormatVersions
+
+logger = logging.getLogger(__name__)
 
 class RoomSolicitationHandler(BaseHandler):
 
     def __init__(self, hs):
         super(RoomSolicitationHandler, self).__init__(hs)
-
         self.hs = hs
-
         self.store = hs.get_datastore()
+        self.state = hs.get_state_handler()
+        self.event_creation_handler = hs.get_event_creation_handler()
+        #self._message_handler = hs.get_message_handler()
 
     def create_solicitation(self, event_id, state):
         self.store.create_solicitation(event_id=event_id, state=state)
 
-    def update_solicitation(self, event_id, state):
+    def update_solicitation(self, requester, event_id, state):
         self.store.update_solicitation(event_id=event_id, state=state)

@@ -270,32 +270,32 @@ class FrozenEventV2(EventBase):
 
     def __init__(self, event_dict, internal_metadata_dict={}, rejected_reason=None):
         event_dict = dict(event_dict)
-
+        logger.info(">Torou1")
         # Signatures is a dict of dicts, and this is faster than doing a
         # copy.deepcopy
         signatures = {
             name: {sig_id: sig for sig_id, sig in sigs.items()}
             for name, sigs in event_dict.pop("signatures", {}).items()
         }
-
-        assert "event_id" not in event_dict
-
+        logger.info(">Torou2")
+        #assert "event_id" not in event_dict
+        logger.info(">Torou3")
         unsigned = dict(event_dict.pop("unsigned", {}))
-
+        logger.info(">Torou4")
         # We intern these strings because they turn up a lot (especially when
         # caching).
         event_dict = intern_dict(event_dict)
-
+        logger.info(">Torou5")
         if USE_FROZEN_DICTS:
             frozen_dict = freeze(event_dict)
         else:
             frozen_dict = event_dict
-
+        logger.info(">Torou6")
         self._event_id = None
         self.type = event_dict["type"]
         if "state_key" in event_dict:
             self.state_key = event_dict["state_key"]
-
+        logger.info(">Torou7")
         super(FrozenEventV2, self).__init__(
             frozen_dict,
             signatures=signatures,

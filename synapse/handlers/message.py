@@ -434,6 +434,7 @@ class EventCreationHandler(object):
             ratelimit (bool): Whether to rate limit this send.
             is_guest (bool): Whether the sender is a guest.
         """
+
         if event.type == EventTypes.Member:
             raise SynapseError(
                 500,
@@ -500,6 +501,7 @@ class EventCreationHandler(object):
         # a situation where event persistence can't keep up, causing
         # extremities to pile up, which in turn leads to state resolution
         # taking longer.
+
         with (yield self.limiter.queue(event_dict["room_id"])):
             event, context = yield self.create_event(
                 requester,

@@ -36,6 +36,32 @@ class RoomSolicitationStore(SQLBaseStore):
             raise StoreError(500, "Problem updating solicitation.")
 
     @defer.inlineCallbacks
+    def get_solicitation(self, event_id):
+        def f(txn):
+            args = [event_id]
+
+            sql = (
+                "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
+                " event.stream_ordering, event.topological_ordering,"
+                " event.received_ts, room_name.name"
+                " FROM solicitations solicitation, events event, room_names room_name"
+                " WHERE solicitation.event_id = event.event_id and room_name.room_id = event.room_id"
+                " and event.event_id = ?"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        solicitations = yield self.runInteraction(
+            "get_solicitation", f
+        )
+
+        solicitation = None
+        if solicitations:
+            solicitation = solicitations[0]
+
+        defer.returnValue(solicitation)
+
+    @defer.inlineCallbacks
     def get_solicitations(self, room_id, user_id=None, before=None,
                             limit=50, only_highlight=False):
         def f(txn):

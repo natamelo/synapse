@@ -42,31 +42,16 @@ class SolicitationsServlet(RestServlet):
         requester = yield self.auth.get_user_by_req(request)
         user_id = requester.user.to_string()
 
-        from_token = parse_string(request, "from", required=False)
         limit = parse_integer(request, "limit", default=50)
-        only = parse_string(request, "only", required=False)
         room_id = parse_string(request, "room_id", required=False)
 
         limit = min(limit, 500)
 
-        #push_actions = yield self.store.get_push_actions_for_user(
-        #    user_id, from_token, limit, only_highlight=(only == "highlight")
-        #)
-
-        #logger.info(push_actions)
-
-        #receipts_by_room = yield self.store.get_receipts_for_user_with_orderings(
-        #    user_id, 'm.read'
-        #)
-
-        #logger.info(receipts_by_room)
-
         solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
 
         event_id_list = [solicitation["event_id"] for solicitation in solicitations]
-        notif_events = yield self.store.get_events(event_id_list)
 
-        logger.info(notif_events)
+        notif_events = yield self.store.get_events(event_id_list)
 
         returned_solicitations = []
 
