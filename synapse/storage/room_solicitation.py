@@ -4,7 +4,13 @@ from synapse.storage._base import SQLBaseStore
 from synapse.api.errors import StoreError
 from twisted.internet import defer
 
+import collections
+
 logger = logging.getLogger(__name__)
+
+RoomID = collections.namedtuple(
+    "RoomID", ("room_id")
+)
 
 
 class RoomSolicitationStore(SQLBaseStore):
@@ -34,6 +40,17 @@ class RoomSolicitationStore(SQLBaseStore):
         except Exception as e:
             logger.warning("update_solicitation with event_id=%s failed: %s", event_id, e)
             raise StoreError(500, "Problem updating solicitation.")
+
+    @defer.inlineCallbacks
+    def get_room_id_by_name(self, name):
+        result = yield self._simple_select_one(table="room_names",
+                                keyvalues={"name": name},
+                                retcols=["room_id"],
+                                desc="get_room_id_by_name")
+        if result:
+            return defer.returnValue(result['room_id'])
+        else:
+            return defer.returnValue(None)
 
     @defer.inlineCallbacks
     def get_solicitation(self, event_id):

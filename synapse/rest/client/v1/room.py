@@ -233,7 +233,6 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             event_dict['content']["action"] = "update"
             event_dict['content']["old_event_id"] = event_id;
 
-
         if event is None:
             event = yield self.event_creation_handler.create_and_send_nonmember_event(
                 requester,

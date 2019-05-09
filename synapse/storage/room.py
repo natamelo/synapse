@@ -19,12 +19,12 @@ import re
 
 from canonicaljson import json
 
-from twisted.internet import defer
-
 from synapse.api.errors import StoreError
 from synapse.storage._base import SQLBaseStore
 from synapse.storage.search import SearchStore
 from synapse.util.caches.descriptors import cached, cachedInlineCallbacks
+
+from twisted.internet import defer
 
 logger = logging.getLogger(__name__)
 

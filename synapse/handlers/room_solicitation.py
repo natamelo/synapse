@@ -17,6 +17,9 @@
 import logging
 
 from ._base import BaseHandler
+from synapse.types import create_requester
+from twisted.internet import defer
+import simplejson as json
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +39,29 @@ class RoomSolicitationHandler(BaseHandler):
     def update_solicitation(self, event_id, state):
         self.store.update_solicitation(event_id=event_id, state=state)
 
+    @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
                                       equipment_type, equipment_code):
         self.store.create_sage_call_solicitation(sender_user_id=sender_user_id, action=action,
                                                  substation_code=substation_code, equipment_type=equipment_type,
                                                  equipment_code=equipment_code)
+
+        requester = create_requester(sender_user_id)
+
+        room_id = yield self.store.get_room_id_by_name(substation_code)
+
+        event_dict = {
+            "type": "m.room.message",
+            "content": {
+                'msgtype': 'm.text',
+                'body': "Solicitação: " + str(action) + " " + str(equipment_type) + " " + equipment_code,
+                'status': 'ABERTO'
+            },
+            "room_id": room_id,
+            "sender": requester.user.to_string(),
+        }
+
+        yield self.event_creation_handler.create_and_send_nonmember_event(
+            requester,
+            event_dict
+        )
