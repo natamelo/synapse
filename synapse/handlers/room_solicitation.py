@@ -42,9 +42,6 @@ class RoomSolicitationHandler(BaseHandler):
     @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
                                       equipment_type, equipment_code):
-        self.store.create_sage_call_solicitation(sender_user_id=sender_user_id, action=action,
-                                                 substation_code=substation_code, equipment_type=equipment_type,
-                                                 equipment_code=equipment_code)
 
         requester = create_requester(sender_user_id)
 
@@ -54,14 +51,31 @@ class RoomSolicitationHandler(BaseHandler):
             "type": "m.room.message",
             "content": {
                 'msgtype': 'm.text',
-                'body': "Solicitação: " + str(action) + " " + str(equipment_type) + " " + equipment_code,
-                'status': 'ABERTO'
+                'body': "Solicitamos: " + str(action) + " " + str(equipment_type) + " " + equipment_code,
+                'status': 'Solicitada'
             },
             "room_id": room_id,
             "sender": requester.user.to_string(),
         }
 
-        yield self.event_creation_handler.create_and_send_nonmember_event(
+        event, context = yield self.event_creation_handler.create_and_no_send_nonmember_event(
             requester,
             event_dict
         )
+
+        self.store.create_sage_call_solicitation(sender_user_id=sender_user_id,
+                                                 action=action,
+                                                 substation_code=substation_code,
+                                                 equipment_type=equipment_type,
+                                                 equipment_code=equipment_code,
+                                                 event_id=event.event_id)
+
+        yield self.event_creation_handler.send_nonmember_event(
+            requester,
+            event,
+            context,
+            ratelimit=True,
+        )
+
+
+

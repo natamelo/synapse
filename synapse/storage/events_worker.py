@@ -142,6 +142,29 @@ class EventsWorkerStore(SQLBaseStore):
         defer.returnValue({e.event_id: e for e in events})
 
     @defer.inlineCallbacks
+    def _has_open_solicitation(self, event_id):
+        def f(txn):
+            args = [event_id]
+
+            sql = (
+                "SELECT solicitation.id"
+                " FROM solicitations solicitation"
+                " WHERE solicitation.event_id = ? and solicitation.status = 'Solicitada'"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        solicitations = yield self.runInteraction(
+            "has_open_solicitation", f
+        )
+
+        solicitation = False
+        if solicitations:
+            solicitation = True
+
+        defer.returnValue(solicitation)
+
+    @defer.inlineCallbacks
     def _get_events(self, event_ids, check_redacted=True,
                     get_prev_content=False, allow_rejected=False):
         if not event_ids:
@@ -243,6 +266,10 @@ class EventsWorkerStore(SQLBaseStore):
                             event.unsigned = dict(event.unsigned)
                             event.unsigned["prev_content"] = prev.content
                             event.unsigned["prev_sender"] = prev.sender
+
+            if entry.event.type == EventTypes.Message:
+                open_solicitation = yield self._has_open_solicitation(event_id)
+                entry.event.content['open_solicitation'] = open_solicitation
 
         defer.returnValue(events)
 

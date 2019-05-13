@@ -526,6 +526,43 @@ class EventCreationHandler(object):
             )
         defer.returnValue(event)
 
+    @defer.inlineCallbacks
+    def create_and_no_send_nonmember_event(
+        self,
+        requester,
+        event_dict,
+        txn_id=None
+    ):
+        """
+        Creates an event, then sends it.
+
+        See self.create_event and self.send_nonmember_event.
+        """
+
+        # We limit the number of concurrent event sends in a room so that we
+        # don't fork the DAG too much. If we don't limit then we can end up in
+        # a situation where event persistence can't keep up, causing
+        # extremities to pile up, which in turn leads to state resolution
+        # taking longer.
+
+        with (yield self.limiter.queue(event_dict["room_id"])):
+            event, context = yield self.create_event(
+                requester,
+                event_dict,
+                token_id=requester.access_token_id,
+                txn_id=txn_id
+            )
+
+            spam_error = self.spam_checker.check_event_for_spam(event)
+            if spam_error:
+                if not isinstance(spam_error, string_types):
+                    spam_error = "Spam is not permitted here"
+                raise SynapseError(
+                    403, spam_error, Codes.FORBIDDEN
+                )
+
+        defer.returnValue((event, context))
+
     @measure_func("create_new_client_event")
     @defer.inlineCallbacks
     def create_new_client_event(self, builder, requester=None,

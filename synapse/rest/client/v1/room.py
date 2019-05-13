@@ -214,7 +214,7 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
 
         event = None
 
-        if content is not None and 'body' in content and 'm.relates_to' not in content and 'Solicitação' in content['body']:
+        '''if content is not None and 'body' in content and 'm.relates_to' not in content and 'Solicitação' in content['body']:
             event_dict["content"]["status"] = "ABERTO"
 
             event = yield self.event_creation_handler.create_and_send_nonmember_event(
@@ -224,12 +224,13 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             )
 
             self.room_solicitation_handler.create_solicitation(event_id=event.event_id, state='ABERTO')
+        '''
 
-        elif 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
+        if 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
-            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='CIENTE')
+            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='Ciente')
 
-            event_dict['content']["status"] = "CIENTE"
+            event_dict['content']["status"] = "Ciente"
             event_dict['content']["action"] = "update"
             event_dict['content']["old_event_id"] = event_id;
 

@@ -118,18 +118,19 @@ class RoomSolicitationStore(SQLBaseStore):
         defer.returnValue(solicitations)
 
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
-                                      equipment_type, equipment_code):
+                                      equipment_type, equipment_code, event_id):
         try:
             self._simple_insert(
                 table="solicitations",
                 values={
                     "id": self._solicitation_list_id_gen.get_next(),
-                    "status": "CIENTE",
+                    "status": "Solicitada",
                     "sender_user_id": sender_user_id,
                     "action": action,
                     "substation_code": substation_code,
                     "equipment_type": equipment_type,
                     "equipment_code": equipment_code,
+                    "event_id": event_id
                 }
             )
         except Exception as e:
