@@ -48,9 +48,9 @@ class RoomSolicitationStore(SQLBaseStore):
                                 retcols=["room_id"],
                                 desc="get_room_id_by_name")
         if result:
-            return defer.returnValue(result['room_id'])
+            defer.returnValue(result['room_id'])
         else:
-            return defer.returnValue(None)
+            defer.returnValue(None)
 
     @defer.inlineCallbacks
     def get_solicitation(self, event_id):
@@ -88,6 +88,7 @@ class RoomSolicitationStore(SQLBaseStore):
             #    args = [user_id, before, limit]
             #else:
             args = [room_id, limit]
+            args = [limit]
 
             #if only_highlight:
             #    if len(before_clause) > 0:
@@ -101,10 +102,11 @@ class RoomSolicitationStore(SQLBaseStore):
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
-                " WHERE solicitation.event_id = event.event_id and room_name.room_id = event.room_id"
-                " and event.room_id = ?"
+                " WHERE solicitation.event_id = event.event_id"
                 " ORDER BY event.stream_ordering DESC"
                 " LIMIT ?"
+                ##and room_name.room_id = event.room_id
+                ##" and event.room_id = ?"
                 #% (before_clause,)
             )
             txn.execute(sql, args)

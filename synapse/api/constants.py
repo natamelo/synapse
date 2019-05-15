@@ -166,10 +166,17 @@ class ActionTypes(object):
 class EquipmentTypes(object):
     REATOR = "REATOR"
     DISJUNTOR = "DISJUNTOR"
-    ALL_EQUIPMENT_TYPES = (REATOR, DISJUNTOR, )
+    BANCO_DE_CAPACITORES = "BANCO_DE_CAPACITORES"
+    ALL_EQUIPMENT_TYPES = (REATOR, DISJUNTOR, BANCO_DE_CAPACITORES, )
 
 
 class SubstationCode(object):
-    ACD = "ACD"
-    CGD = "CGD"
-    ALL_SUBSTATION_CODES = (ACD, CGD, )
+    CCL = "CCL"
+    EMG = "EMG"
+    ESO = "ESO"
+    ARA = "ARA"
+    JUP = "JUP"
+    JAL = "JAL"
+    CAV = "CAV"
+    BIO = "BIO"
+    ALL_SUBSTATION_CODES = (CCL, EMG, ESO, ARA, JUP, JAL, CAV, BIO, )
