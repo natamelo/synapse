@@ -223,7 +223,7 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             event_dict['content']["action"] = "update"
             event_dict['content']["old_event_id"] = event_id;
 
-        if content['action']:
+        if 'action' in content:
             if content['action'] == 'create_intervention':
                 event = yield self.room_intervention_handler.create_intervention_and_send_event(requester, event_dict, 'Solicitada')
             elif content['action'] == 'authorize_intervention':

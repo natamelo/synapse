@@ -11,6 +11,7 @@ import synapse.handlers.e2e_keys
 import synapse.handlers.message
 import synapse.handlers.room
 import synapse.handlers.room_solicitation
+import synapse.handlers.room_intervention
 import synapse.handlers.room_member
 import synapse.handlers.set_password
 import synapse.rest.media.v1.media_repository
@@ -85,7 +86,7 @@ class HomeServer(object):
     def get_room_solicitation_handler(self) -> synapse.handlers.room_solicitation.RoomSolicitationHandler:
         pass
 
-    def get_room_intervention_handler(self) -> synapse.handlers.room_intervention.RoomIntervenationHandler:
+    def get_room_intervention_handler(self) -> synapse.handlers.room_intervention.RoomInterventionHandler:
         pass
 
 

@@ -92,7 +92,7 @@ class DataStore(RoomMemberStore, RoomStore,
                 UserErasureStore,
                 MonthlyActiveUsersStore,
                 RoomSolicitationStore,
-                RoomInterventationStore,
+                RoomInterventionStore,
                 ):
 
     def __init__(self, db_conn, hs):

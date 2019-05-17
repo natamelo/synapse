@@ -17,7 +17,6 @@
 import logging
 
 from ._base import BaseHandler
-from synapse.types import create_requester
 from twisted.internet import defer
 
 logger = logging.getLogger(__name__)
