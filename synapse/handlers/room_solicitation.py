@@ -19,9 +19,9 @@ import logging
 from ._base import BaseHandler
 from synapse.types import create_requester
 from twisted.internet import defer
-import simplejson as json
 
 logger = logging.getLogger(__name__)
+
 
 class RoomSolicitationHandler(BaseHandler):
 
@@ -31,7 +31,6 @@ class RoomSolicitationHandler(BaseHandler):
         self.store = hs.get_datastore()
         self.state = hs.get_state_handler()
         self.event_creation_handler = hs.get_event_creation_handler()
-        #self._message_handler = hs.get_message_handler()
 
     def create_solicitation(self, event_id, state):
         self.store.create_solicitation(event_id=event_id, state=state)

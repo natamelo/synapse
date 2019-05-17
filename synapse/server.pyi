@@ -85,3 +85,7 @@ class HomeServer(object):
     def get_room_solicitation_handler(self) -> synapse.handlers.room_solicitation.RoomSolicitationHandler:
         pass
 
+    def get_room_intervention_handler(self) -> synapse.handlers.room_intervention.RoomIntervenationHandler:
+        pass
+
+
