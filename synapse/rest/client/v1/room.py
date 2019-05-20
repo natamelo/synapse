@@ -228,6 +228,10 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
                 event = yield self.room_intervention_handler.create_intervention_and_send_event(requester, event_dict, 'Solicitada')
             elif content['action'] == 'authorize_intervention':
                 event = yield self.room_intervention_handler.update_intervention(room_id, 'Autorizada')
+            elif content['action'] == 'inform_cancelation':
+                event = yield self.room_intervention_handler.update_intervention(room_id, 'Cancelamento Informado')
+            elif content['action'] == 'check_cancelation':
+                event = yield self.room_intervention_handler.update_intervention(room_id, 'Ciente do Cancelamento')
 
         if event is None:
             event = yield self.event_creation_handler.create_and_send_nonmember_event(

@@ -66,12 +66,36 @@ class RoomInterventionStore(SQLBaseStore):
             defer.returnValue(None)
 
     @defer.inlineCallbacks
-    def get_intervention_id_by_room_id(self, event_id):
+    def get_intervention_id_by_room_id(self, room_id):
+        def f(txn):
+            args = [room_id]
+
+            sql = (
+                "SELECT intervention.id"
+                " FROM interventions intervention, events intervention_event"
+                " WHERE intervention_event.room_id = ?"
+                " and intervention_event.event_id = intervention.event_id"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        interventions = yield self.runInteraction(
+            "get_intervention_id_by_room_id", f
+        )
+
+        intervention = None
+        if interventions:
+            intervention = interventions[0]['id']
+
+        defer.returnValue(intervention)
+
+    @defer.inlineCallbacks
+    def get_intervention_status_by_room_id(self, event_id):
         def f(txn):
             args = [event_id]
 
             sql = (
-                "SELECT intervention.id"
+                "SELECT intervention.status"
                 " FROM interventions intervention, events intervention_event"
                 " WHERE intervention_event.room_id = ?"
                 " and intervention_event.event_id = intervention.event_id"
@@ -85,7 +109,7 @@ class RoomInterventionStore(SQLBaseStore):
 
         intervention = None
         if interventions:
-            intervention = interventions[0]
+            intervention = interventions[0]['status']
 
         defer.returnValue(intervention)
 

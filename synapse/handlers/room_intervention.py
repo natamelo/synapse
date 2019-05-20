@@ -48,8 +48,9 @@ class RoomInterventionHandler(BaseHandler):
         )
         defer.returnValue(event)
 
+    @defer.inlineCallbacks
     def update_intervention(self, room_id, state):
-        self.store.update_intervention(room_id=room_id, state=state)
+        yield self.store.update_intervention(room_id=room_id, state=state)
 
 
 

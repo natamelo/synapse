@@ -582,6 +582,11 @@ class SyncHandler(object):
             details.get(Membership.INVITE, empty_ms).count
         )
 
+        intervention_status = yield self.store.get_intervention_status_by_room_id(room_id)
+
+        if intervention_status:
+            summary['m.intervention_status'] = intervention_status
+
         # if the room has a name or canonical_alias set, we can skip
         # calculating heroes.  we assume that if the event has contents, it'll
         # be a valid name or canonical_alias - i.e. we're checking that they
