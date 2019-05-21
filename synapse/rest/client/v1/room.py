@@ -234,6 +234,14 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             event_dict['content']["action"] = "update"
             event_dict['content']["old_event_id"] = event_id;
 
+        elif 'Cancelado' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
+            event_id = content['m.relates_to']['m.in_reply_to']['event_id']
+            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='Cancelado')
+
+            event_dict['content']["status"] = "Cancelado"
+            event_dict['content']["action"] = "update"
+            event_dict['content']["old_event_id"] = event_id;
+
         if event is None:
             event = yield self.event_creation_handler.create_and_send_nonmember_event(
                 requester,
