@@ -67,6 +67,7 @@ from synapse.handlers.receipts import ReceiptsHandler
 from synapse.handlers.register import RegistrationHandler
 from synapse.handlers.room import RoomContextHandler, RoomCreationHandler
 from synapse.handlers.room_solicitation import RoomSolicitationHandler
+from synapse.handlers.room_intervention import RoomInterventionHandler
 from synapse.handlers.room_list import RoomListHandler
 from synapse.handlers.room_member import RoomMemberMasterHandler
 from synapse.handlers.room_member_worker import RoomMemberWorkerHandler
@@ -185,6 +186,7 @@ class HomeServer(object):
         'sendmail',
         'registration_handler',
         'room_solicitation_handler',
+        'room_intervention_handler',
     ]
 
     REQUIRED_ON_MASTER_STARTUP = [
@@ -375,6 +377,9 @@ class HomeServer(object):
 
     def build_room_solicitation_handler(self):
         return RoomSolicitationHandler(self)
+
+    def build_room_intervention_handler(self):
+        return RoomInterventionHandler(self)
 
     def build_set_password_handler(self):
         return SetPasswordHandler(self)
