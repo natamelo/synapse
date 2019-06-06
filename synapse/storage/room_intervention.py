@@ -53,7 +53,6 @@ class RoomInterventionStore(SQLBaseStore):
             #    args = [user_id, before, limit]
             #else:
             args = [room_id, limit]
-            args = [limit]
 
             #if only_highlight:
             #    if len(before_clause) > 0:
@@ -67,12 +66,9 @@ class RoomInterventionStore(SQLBaseStore):
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM interventions intervention, events event, room_names room_name"
-                " WHERE intervention.event_id = event.event_id"
+                " WHERE intervention.event_id = event.event_id AND event.room_id = ?"
                 " ORDER BY event.stream_ordering DESC"
                 " LIMIT ?"
-                ##and room_name.room_id = event.room_id
-                ##" and event.room_id = ?"
-                #% (before_clause,)
             )
             txn.execute(sql, args)
             return self.cursor_to_dict(txn)
