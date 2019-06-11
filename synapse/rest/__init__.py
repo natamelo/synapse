@@ -41,6 +41,7 @@ from synapse.rest.client.v2_alpha import (
     keys,
     notifications,
     solicitations,
+    interventions,
     openid,
     read_marker,
     receipts,
@@ -104,6 +105,7 @@ class ClientRestResource(JsonResource):
         openid.register_servlets(hs, client_resource)
         notifications.register_servlets(hs, client_resource)
         solicitations.register_servlets(hs, client_resource)
+        interventions.register_servlets(hs, client_resource)
         devices.register_servlets(hs, client_resource)
         thirdparty.register_servlets(hs, client_resource)
         sendtodevice.register_servlets(hs, client_resource)

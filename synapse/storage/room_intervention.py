@@ -44,6 +44,43 @@ class RoomInterventionStore(SQLBaseStore):
             raise StoreError(500, "Problem updating solicitation.")
 
     @defer.inlineCallbacks
+    def get_interventions(self, room_id, user_id=None, before=None,
+                            limit=50, only_highlight=False):
+        def f(txn):
+            before_clause = ""
+            #if before:
+            #    before_clause = "AND event.stream_ordering < ?"
+            #    args = [user_id, before, limit]
+            #else:
+            args = [room_id, limit]
+
+            #if only_highlight:
+            #    if len(before_clause) > 0:
+            #        before_clause += " "
+            #    before_clause += "AND epa.highlight = 1"
+
+            # NB. This assumes event_ids are globally unique since
+            # it makes the query easier to index
+            sql = (
+                "SELECT intervention.event_id, intervention.status, event.room_id,"
+                " event.stream_ordering, event.topological_ordering,"
+                " event.received_ts, room_name.name"
+                " FROM interventions intervention, events event, room_names room_name"
+                " WHERE intervention.event_id = event.event_id AND event.room_id = ?"
+                " ORDER BY event.stream_ordering DESC"
+                " LIMIT ?"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        interventions = yield self.runInteraction(
+            "get_interventions", f
+        )
+        #for pa in push_actions:
+        #    pa["actions"] = _deserialize_action(pa["actions"], pa["highlight"])
+        defer.returnValue(interventions)
+
+    @defer.inlineCallbacks
     def get_room_id_by_name(self, name):
         result = yield self._simple_select_one(table="room_names",
                                 keyvalues={"name": name},
