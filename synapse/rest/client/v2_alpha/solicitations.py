@@ -143,7 +143,72 @@ class SolicitationSageCallRestServlet(RestServlet):
     def on_GET(self, request):
         return (200, "Not implemented")
 
+# TODO: Needs unit testing
+class InformStatusRestServlet(RestServlet):
+    PATTERNS = client_v2_patterns("/solicitations/inform_status$")
+
+    def __init__(self, hs):
+        super(InformStatusRestServlet, self).__init__()
+        self.event_creation_handler = hs.get_event_creation_handler()
+        self.room_solicitation_handler = hs.get_room_solicitation_handler()
+        self.store = hs.get_datastore()
+
+    @defer.inlineCallbacks
+    def on_PUT(self, request):
+        # requester = yield self.auth.get_user_by_req(request, allow_guest=True)
+        content = parse_json_object_from_request(request)
+
+        sender_user_id = content['sender_user_id']
+        status = content['status']
+        substation_code = content['substation_code']
+        equipment_type = content['equipment_type']
+        equipment_code = content['equipment_code']
+
+        status = str(status).lower()
+        action = None
+
+        if status == 'ligado':
+            action = 'LIGAR'
+        elif status == 'desligado':
+            action = 'DESLIGAR'
+
+        if action not in ActionTypes.ALL_ACTION_TYPES:
+            defer.returnValue((400, {
+                "error": "Invalid Action Type"
+            }))
+
+        if equipment_type not in EquipmentTypes.ALL_EQUIPMENT_TYPES:
+            defer.returnValue((400, {
+                "error": "Invalid Equipment Type"
+            }))
+
+        if substation_code not in SubstationCode.ALL_SUBSTATION_CODES:
+            defer.returnValue((400, {
+                "error": "Invalid Substation Code"
+            }))
+
+        success = yield self.room_solicitation_handler.inform_status(
+            sender_user_id=sender_user_id,
+            status=status,
+            action=action,
+            substation_code=substation_code,
+            equipment_type=equipment_type,
+            equipment_code=equipment_code,
+        )
+
+        if success:
+            defer.returnValue((201, {
+                "Message": "Solicitation status updated"
+            }))
+        else:
+            defer.returnValue((400, {
+                "Message": "Status informed are not consistent with system information"
+            }))
+
+    def on_GET(self, request):
+        return (200, "Not implemented")
 
 def register_servlets(hs, http_server):
     SolicitationsServlet(hs).register(http_server)
     SolicitationSageCallRestServlet(hs).register(http_server)
+    InformStatusRestServlet(hs).register(http_server)

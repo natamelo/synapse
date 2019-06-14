@@ -76,5 +76,54 @@ class RoomSolicitationHandler(BaseHandler):
             ratelimit=True,
         )
 
+    @defer.inlineCallbacks
+    def inform_status(self, sender_user_id, status, substation_code,
+                              action, equipment_type, equipment_code):
+
+        requester = create_requester(sender_user_id)
+
+        room_id = yield self.store.get_room_id_by_name(substation_code)
+        solicitations = yield self.store.get_solicitations_by_room(room_id=room_id, limit=500)
+
+        founded_solicitation = None
+
+        for solicitation in solicitations:
+            if solicitation['equipment_code'] == equipment_code and solicitation['equipment_type'] == equipment_type and solicitation['status'] == 'Ciente' and solicitation['action'] == action:
+                founded_solicitation = solicitation
+
+        if founded_solicitation is not None:
+            
+            event_dict = {
+                "type": "m.room.message",
+                "content": {
+                    'msgtype': 'm.text',
+                    'body': "O " + str(equipment_type) +  " " + equipment_code + " foi " + status,
+                    'status': 'Concluida'
+                },
+                "action": "atualização",
+                "room_id": room_id,
+                "sender": requester.user.to_string(),
+            }
+
+            event, context = yield self.event_creation_handler.create_and_no_send_nonmember_event(
+                requester,
+                event_dict
+            )
+
+            self.store.update_solicitation_by_id(
+                id=founded_solicitation['id'],
+                event_id=event.event_id,
+                state='Concluida')
+
+            yield self.event_creation_handler.send_nonmember_event(
+                requester,
+                event,
+                context,
+                ratelimit=True,
+            )
+
+            return True
+        else:
+            return False
 
 
