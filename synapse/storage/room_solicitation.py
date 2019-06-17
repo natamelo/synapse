@@ -168,10 +168,11 @@ class RoomSolicitationStore(SQLBaseStore):
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
                                       equipment_type, equipment_code, event_id):
         try:
+            id = self._solicitation_list_id_gen.get_next()
             self._simple_insert(
                 table="solicitations",
                 values={
-                    "id": self._solicitation_list_id_gen.get_next(),
+                    "id": id,
                     "status": "Solicitada",
                     "sender_user_id": sender_user_id,
                     "action": action,
@@ -180,6 +181,14 @@ class RoomSolicitationStore(SQLBaseStore):
                     "equipment_code": equipment_code,
                     "event_id": event_id
                 }
+            )
+            self._simple_insert(
+                "solicitation_event",
+                {
+                    "solicitation_id": id,
+                    "event_id": event_id,
+                },
+                desc="event_for_solicitation"
             )
         except Exception as e:
             logger.warning("create_sage_call_solicitation for sender_user=%s failed: %s", sender_user_id, e)
