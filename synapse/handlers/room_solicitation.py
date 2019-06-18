@@ -35,8 +35,13 @@ class RoomSolicitationHandler(BaseHandler):
     def create_solicitation(self, event_id, state):
         self.store.create_solicitation(event_id=event_id, state=state)
 
-    def update_solicitation(self, event_id, state):
-        self.store.update_solicitation(event_id=event_id, state=state)
+    @defer.inlineCallbacks
+    def update_solicitation(self, old_event_id, event_id, state):
+        solicitation_id = yield self.store.get_solicitation_id(old_event_id=old_event_id, limit=500)
+        self.store.update_solicitation_by_id(
+            id=solicitation_id,
+            event_id=event_id,
+            state=state)
 
     @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,

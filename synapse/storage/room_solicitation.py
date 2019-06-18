@@ -140,6 +140,20 @@ class RoomSolicitationStore(SQLBaseStore):
         defer.returnValue(solicitations)
 
     @defer.inlineCallbacks
+    def get_solicitation_id(self, old_event_id, limit=50):
+        
+        result = yield self._simple_select_one(
+            "solicitation_event",
+            dict(event_id=old_event_id),
+            ["solicitation_id"],
+            desc="get_solicitation_event",
+        )
+        if result:
+            defer.returnValue(result.get("solicitation_id"))
+            return
+        defer.returnValue(None)
+
+    @defer.inlineCallbacks
     def get_solicitations_by_room(self, room_id, user_id=None, before=None,
                             limit=50, only_highlight=False):
         def f(txn):
