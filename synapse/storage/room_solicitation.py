@@ -118,7 +118,7 @@ class RoomSolicitationStore(SQLBaseStore):
             # NB. This assumes event_ids are globally unique since
             # it makes the query easier to index
             sql = (
-                "SELECT solicitation.event_id, solicitation.status, event.room_id,"
+                "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
@@ -137,6 +137,25 @@ class RoomSolicitationStore(SQLBaseStore):
         )
         #for pa in push_actions:
         #    pa["actions"] = _deserialize_action(pa["actions"], pa["highlight"])
+        defer.returnValue(solicitations)
+
+    @defer.inlineCallbacks
+    def get_solicitation_events(self, limit=50):
+        def f(txn):
+            args = [limit]
+
+            sql = (
+                " SELECT solicitation_event.*"
+                " FROM solicitation_event"
+                " ORDER BY solicitation_event.solicitation_id DESC"
+                " LIMIT ?"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        solicitations = yield self.runInteraction(
+            "get_solicitation_events", f
+        )
         defer.returnValue(solicitations)
 
     @defer.inlineCallbacks

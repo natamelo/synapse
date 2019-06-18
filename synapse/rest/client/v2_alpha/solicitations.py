@@ -49,8 +49,9 @@ class SolicitationsServlet(RestServlet):
         limit = min(limit, 500)
 
         solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
+        solicitation_events = yield self.store.get_solicitation_events(limit=limit)
 
-        event_id_list = [solicitation["event_id"] for solicitation in solicitations]
+        event_id_list = [solicitation["event_id"] for solicitation in solicitation_events]
 
         notif_events = yield self.store.get_events(event_id_list)
 
@@ -58,13 +59,19 @@ class SolicitationsServlet(RestServlet):
 
         next_token = None
 
+        grouped_solicitations = {}
         for solicitation in solicitations:
+            solicitation_id = str(solicitation['id'])
+            grouped_solicitations[solicitation_id] = solicitation
+
+        for solicitation_event in solicitation_events:
+            solicitation = grouped_solicitations[solicitation_event['solicitation_id']]
             event = serialize_event(
-                notif_events[solicitation["event_id"]],
+                notif_events[solicitation_event["event_id"]],
                 self.clock.time_msec(),
                 event_format=format_event_for_client_v2_without_room_id,
             )
-            event['content']["status"] = solicitation["status"]
+            event['solicitation_number']=solicitation_event['solicitation_id']
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
@@ -73,16 +80,10 @@ class SolicitationsServlet(RestServlet):
                 "event": event,
             }
 
-            # if pa["room_id"] not in receipts_by_room:
-            solicitation["read"] = False
-            # else:
-            #    receipt = receipts_by_room[pa["room_id"]]
+            logger.info('ID %r CONTENT %r ', solicitation_event['solicitation_id'],event['content'])
 
-            #    returned_pa["read"] = (
-            #        receipt["topological_ordering"], receipt["stream_ordering"]
-            #    ) >= (
-            #        pa["topological_ordering"], pa["stream_ordering"]
-            #    )
+            solicitation["read"] = False
+    
             returned_solicitations.append(returned_pa)
             next_token = str(solicitation["stream_ordering"])
 
