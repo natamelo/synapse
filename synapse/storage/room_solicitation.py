@@ -119,6 +119,7 @@ class RoomSolicitationStore(SQLBaseStore):
             # it makes the query easier to index
             sql = (
                 "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
+                " solicitation.action, solicitation.equipment_type, solicitation.equipment_code,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"

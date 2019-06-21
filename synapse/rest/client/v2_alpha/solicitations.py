@@ -66,12 +66,14 @@ class SolicitationsServlet(RestServlet):
 
         for solicitation_event in solicitation_events:
             solicitation = grouped_solicitations[solicitation_event['solicitation_id']]
+
             event = serialize_event(
                 notif_events[solicitation_event["event_id"]],
                 self.clock.time_msec(),
                 event_format=format_event_for_client_v2_without_room_id,
             )
-            event['solicitation_number']=solicitation_event['solicitation_id']
+            event['content']['solicitation_number']=solicitation_event['solicitation_id']
+            event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
@@ -79,8 +81,6 @@ class SolicitationsServlet(RestServlet):
                 "ts": solicitation["received_ts"],
                 "event": event,
             }
-
-            logger.info('ID %r CONTENT %r ', solicitation_event['solicitation_id'],event['content'])
 
             solicitation["read"] = False
     
