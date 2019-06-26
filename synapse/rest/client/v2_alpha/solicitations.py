@@ -74,6 +74,7 @@ class SolicitationsServlet(RestServlet):
             )
             event['content']['solicitation_number']=solicitation_event['solicitation_id']
             event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
+            event['content']['atual_status'] = solicitation['status']
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
