@@ -148,7 +148,6 @@ class RoomSolicitationStore(SQLBaseStore):
             sql = (
                 " SELECT solicitation_event.*"
                 " FROM solicitation_event"
-                " ORDER BY solicitation_event.solicitation_id DESC"
                 " LIMIT ?"
             )
             txn.execute(sql, args)

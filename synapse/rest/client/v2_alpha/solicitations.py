@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import logging
+import collections
 
 from twisted.internet import defer
 from synapse.api.constants import ActionTypes, EquipmentTypes, SubstationCode
@@ -50,29 +51,31 @@ class SolicitationsServlet(RestServlet):
 
         solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
         solicitation_events = yield self.store.get_solicitation_events(limit=limit)
-
+        
         event_id_list = [solicitation["event_id"] for solicitation in solicitation_events]
-
         notif_events = yield self.store.get_events(event_id_list)
-
-        returned_solicitations = []
-
-        next_token = None
 
         grouped_solicitations = {}
         for solicitation in solicitations:
             solicitation_id = str(solicitation['id'])
             grouped_solicitations[solicitation_id] = solicitation
 
-        for solicitation_event in solicitation_events:
-            solicitation = grouped_solicitations[solicitation_event['solicitation_id']]
+        sorted_solicitations = self._sortSolicitationEvents(solicitation_events)
+        returned_solicitations = []
+        next_token = None
+
+        for solicitation_event in sorted_solicitations:
+            solicitation_id = solicitation_event['solicitation_id']
+            event_id = solicitation_event['event_id']
+            
+            solicitation = grouped_solicitations[solicitation_id]
 
             event = serialize_event(
-                notif_events[solicitation_event["event_id"]],
+                notif_events[event_id],
                 self.clock.time_msec(),
                 event_format=format_event_for_client_v2_without_room_id,
             )
-            event['content']['solicitation_number']=solicitation_event['solicitation_id']
+            event['content']['solicitation_number']=solicitation_id
             event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
             event['content']['atual_status'] = solicitation['status']
             returned_pa = {
@@ -92,6 +95,20 @@ class SolicitationsServlet(RestServlet):
             "notifications": returned_solicitations,
             "next_token": next_token,
         }))
+
+    def _sortSolicitationEvents(self, solicitation_events):
+        sorted_solicitations = []
+        visited_events = []
+        for i in range(len(solicitation_events)-1, -1, -1):
+            atual_event_id = solicitation_events[i]['solicitation_id']
+            if atual_event_id not in visited_events:
+                sorted_solicitations.append(solicitation_events[i])
+                visited_events.append(atual_event_id)
+                for j in range(len(solicitation_events)-2, -1, -1):
+                    if solicitation_events[j]['solicitation_id'] == atual_event_id:
+                        sorted_solicitations.append(solicitation_events[j]) 
+        
+        return sorted_solicitations   
 
 
 # TODO: Needs unit testing
