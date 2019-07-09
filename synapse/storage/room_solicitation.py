@@ -198,11 +198,12 @@ class RoomSolicitationStore(SQLBaseStore):
 
         defer.returnValue(solicitations)
 
+    @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
                                       equipment_type, equipment_code, event_id):
         try:
-            id = self._solicitation_list_id_gen.get_next()
-            self._simple_insert(
+            id = yield self._solicitation_list_id_gen.get_next()
+            yield self._simple_insert(
                 table="solicitations",
                 values={
                     "id": id,
@@ -215,7 +216,7 @@ class RoomSolicitationStore(SQLBaseStore):
                     "event_id": event_id
                 }
             )
-            self._simple_insert(
+            yield self._simple_insert(
                 "solicitation_event",
                 {
                     "solicitation_id": id,

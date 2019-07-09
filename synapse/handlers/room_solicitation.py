@@ -56,6 +56,7 @@ class RoomSolicitationHandler(BaseHandler):
             "content": {
                 'msgtype': 'm.text',
                 'body': "Solicitamos " + str(action) + " " + str(equipment_type) + " " + equipment_code,
+                'solicitation_goal': str(action) + " " + str(equipment_type) + " " + equipment_code,
                 'status': 'Solicitada'
             },
             "room_id": room_id,
@@ -67,12 +68,16 @@ class RoomSolicitationHandler(BaseHandler):
             event_dict
         )
 
-        self.store.create_sage_call_solicitation(sender_user_id=sender_user_id,
+        yield self.store.create_sage_call_solicitation(sender_user_id=sender_user_id,
                                                  action=action,
                                                  substation_code=substation_code,
                                                  equipment_type=equipment_type,
                                                  equipment_code=equipment_code,
                                                  event_id=event.event_id)
+
+        
+        solicitation_id = yield self.store.get_solicitation_id(event.event_id)
+        event['content']['solicitation_number'] = solicitation_id
 
         yield self.event_creation_handler.send_nonmember_event(
             requester,
