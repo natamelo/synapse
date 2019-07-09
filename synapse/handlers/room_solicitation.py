@@ -108,6 +108,7 @@ class RoomSolicitationHandler(BaseHandler):
                 "content": {
                     'msgtype': 'm.text',
                     'body': "O " + str(equipment_type) +  " " + equipment_code + " foi " + status,
+                    'solicitation_number': founded_solicitation['id'],
                     'status': 'Concluida'
                 },
                 "action": "atualização",
