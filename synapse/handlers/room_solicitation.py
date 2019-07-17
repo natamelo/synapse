@@ -57,7 +57,8 @@ class RoomSolicitationHandler(BaseHandler):
                 'msgtype': 'm.text',
                 'body': "Solicitamos " + str(action) + " " + str(equipment_type) + " " + equipment_code,
                 'solicitation_goal': str(action) + " " + str(equipment_type) + " " + equipment_code,
-                'status': 'Solicitada'
+                'status': 'Solicitada',
+                'atual_status': 'Solicitada',
             },
             "room_id": room_id,
             "sender": requester.user.to_string(),

@@ -44,6 +44,7 @@ class SolicitationsServlet(RestServlet):
         requester = yield self.auth.get_user_by_req(request)
         user_id = requester.user.to_string()
 
+        from_token = parse_string(request, "from", required=False)
         limit = parse_integer(request, "limit", default=50)
         room_id = parse_string(request, "room_id", required=False)
 
@@ -89,7 +90,7 @@ class SolicitationsServlet(RestServlet):
             solicitation["read"] = False
     
             returned_solicitations.append(returned_pa)
-            next_token = str(solicitation["stream_ordering"])
+            next_token = str(solicitation['stream_ordering'])
 
         defer.returnValue((200, {
             "notifications": returned_solicitations,

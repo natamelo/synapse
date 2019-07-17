@@ -41,8 +41,10 @@ class RoomSolicitationStore(SQLBaseStore):
             logger.warning("update_solicitation with event_id=%s failed: %s", event_id, e)
             raise StoreError(500, "Problem updating solicitation.")
 
+    @defer.inlineCallbacks
     def update_solicitation_by_id(self, id, event_id, state):
         try:
+            event_order = yield self._solicitation_event_list_id_gen.get_next()
             self._simple_update(
                 table="solicitations",
                 keyvalues={"id": id},
@@ -52,6 +54,7 @@ class RoomSolicitationStore(SQLBaseStore):
             self._simple_insert(
                 "solicitation_event",
                 {
+                    "stream_ordering": event_order,
                     "solicitation_id": id,
                     "event_id": event_id,
                 },
@@ -203,6 +206,7 @@ class RoomSolicitationStore(SQLBaseStore):
                                       equipment_type, equipment_code, event_id):
         try:
             id = yield self._solicitation_list_id_gen.get_next()
+            event_order = yield self._solicitation_event_list_id_gen.get_next()
             yield self._simple_insert(
                 table="solicitations",
                 values={
@@ -218,7 +222,8 @@ class RoomSolicitationStore(SQLBaseStore):
             )
             yield self._simple_insert(
                 "solicitation_event",
-                {
+                {   
+                    "stream_ordering": event_order,
                     "solicitation_id": id,
                     "event_id": event_id,
                 },
