@@ -62,11 +62,10 @@ class SolicitationsServlet(RestServlet):
             if solicitation_id not in grouped_solicitations:
                 grouped_solicitations[solicitation_id] = yield self.store.get_solicitation(event_id, solicitation_id)
 
-        sorted_solicitations = self._sortSolicitationEvents(solicitation_events)
         returned_solicitations = []
         next_token = None
 
-        for solicitation_event in sorted_solicitations:
+        for solicitation_event in solicitation_events:
             solicitation_id = solicitation_event['solicitation_id']
             event_id = solicitation_event['event_id']
             
@@ -96,21 +95,7 @@ class SolicitationsServlet(RestServlet):
         defer.returnValue((200, {
             "notifications": returned_solicitations,
             "next_token": next_token,
-        }))
-
-    def _sortSolicitationEvents(self, solicitation_events):
-        sorted_solicitations = []
-        visited_events = []
-        for i in range(len(solicitation_events)):
-            atual_event_id = solicitation_events[i]['solicitation_id']
-            if atual_event_id not in visited_events:
-                sorted_solicitations.append(solicitation_events[i])
-                visited_events.append(atual_event_id)
-                for j in range(len(solicitation_events)-1):
-                    if solicitation_events[j]['solicitation_id'] == atual_event_id:
-                        sorted_solicitations.append(solicitation_events[j]) 
-        
-        return sorted_solicitations   
+        })) 
 
 
 # TODO: Needs unit testing
