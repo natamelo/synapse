@@ -76,16 +76,18 @@ class RoomSolicitationStore(SQLBaseStore):
             defer.returnValue(None)
 
     @defer.inlineCallbacks
-    def get_solicitation(self, event_id):
+    def get_solicitation(self, event_id, solicitation_id):
         def f(txn):
-            args = [event_id]
+            args = [solicitation_id, event_id]
 
             sql = (
-                "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
+                " SELECT solicitation.id, solicitation.event_id, solicitation.sender_user_id,"
+                " solicitation.status, solicitation.action, solicitation.substation_code,"
+                " solicitation.equipment_type, solicitation.equipment_code,event.room_id,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
-                " WHERE solicitation.event_id = event.event_id and room_name.room_id = event.room_id"
+                " WHERE solicitation.id = ? and room_name.room_id = event.room_id"
                 " and event.event_id = ?"
             )
             txn.execute(sql, args)
@@ -151,6 +153,7 @@ class RoomSolicitationStore(SQLBaseStore):
             sql = (
                 " SELECT solicitation_event.*"
                 " FROM solicitation_event"
+                " ORDER BY solicitation_event.stream_ordering DESC"
                 " LIMIT ?"
             )
             txn.execute(sql, args)
@@ -160,6 +163,7 @@ class RoomSolicitationStore(SQLBaseStore):
             "get_solicitation_events", f
         )
         defer.returnValue(solicitations)
+
 
     @defer.inlineCallbacks
     def get_solicitation_id(self, old_event_id, limit=50):

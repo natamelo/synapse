@@ -50,16 +50,17 @@ class SolicitationsServlet(RestServlet):
 
         limit = min(limit, 500)
 
-        solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
         solicitation_events = yield self.store.get_solicitation_events(limit=limit)
-        
+
         event_id_list = [solicitation["event_id"] for solicitation in solicitation_events]
         notif_events = yield self.store.get_events(event_id_list)
 
         grouped_solicitations = {}
-        for solicitation in solicitations:
-            solicitation_id = str(solicitation['id'])
-            grouped_solicitations[solicitation_id] = solicitation
+        for solicitation in solicitation_events:
+            solicitation_id = str(solicitation['solicitation_id'])
+            event_id = str(solicitation['event_id'])
+            if solicitation_id not in grouped_solicitations:
+                grouped_solicitations[solicitation_id] = yield self.store.get_solicitation(event_id, solicitation_id)
 
         sorted_solicitations = self._sortSolicitationEvents(solicitation_events)
         returned_solicitations = []
@@ -100,12 +101,12 @@ class SolicitationsServlet(RestServlet):
     def _sortSolicitationEvents(self, solicitation_events):
         sorted_solicitations = []
         visited_events = []
-        for i in range(len(solicitation_events)-1, -1, -1):
+        for i in range(len(solicitation_events)):
             atual_event_id = solicitation_events[i]['solicitation_id']
             if atual_event_id not in visited_events:
                 sorted_solicitations.append(solicitation_events[i])
                 visited_events.append(atual_event_id)
-                for j in range(len(solicitation_events)-2, -1, -1):
+                for j in range(len(solicitation_events)-1):
                     if solicitation_events[j]['solicitation_id'] == atual_event_id:
                         sorted_solicitations.append(solicitation_events[j]) 
         
