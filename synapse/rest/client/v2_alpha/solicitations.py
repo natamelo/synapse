@@ -50,7 +50,7 @@ class SolicitationsServlet(RestServlet):
 
         limit = min(limit, 500)
 
-        solicitation_events = yield self.store.get_solicitation_events(limit=limit)
+        solicitation_events = yield self.store.get_solicitation_events(limit=limit, before=from_token)
 
         event_id_list = [solicitation["event_id"] for solicitation in solicitation_events]
         notif_events = yield self.store.get_events(event_id_list)

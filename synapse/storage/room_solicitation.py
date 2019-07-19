@@ -146,15 +146,23 @@ class RoomSolicitationStore(SQLBaseStore):
         defer.returnValue(solicitations)
 
     @defer.inlineCallbacks
-    def get_solicitation_events(self, limit=50):
+    def get_solicitation_events(self, limit=50, before=None):
         def f(txn):
-            args = [limit]
+            before_clause = ""
+            
+            if before:
+                before_clause = "WHERE solicitation_event.stream_ordering < ?"
+                args = [before, limit]
+            else:
+                args = [limit]
 
             sql = (
                 " SELECT solicitation_event.*"
                 " FROM solicitation_event"
+                " %s "
                 " ORDER BY solicitation_event.stream_ordering DESC"
                 " LIMIT ?"
+                % (before_clause)
             )
             txn.execute(sql, args)
             return self.cursor_to_dict(txn)
