@@ -20,9 +20,33 @@ from synapse.types import RoomAlias
 from synapse.util.stringutils import random_string_with_symbols
 
 
-class RegistrationConfig(Config):
+class AccountValidityConfig(Config):
+    def __init__(self, config, synapse_config):
+        self.enabled = config.get("enabled", False)
+        self.renew_by_email_enabled = "renew_at" in config
 
-    def read_config(self, config):
+        if self.enabled:
+            if "period" in config:
+                self.period = self.parse_duration(config["period"])
+            else:
+                raise ConfigError("'period' is required when using account validity")
+
+            if "renew_at" in config:
+                self.renew_at = self.parse_duration(config["renew_at"])
+
+            if "renew_email_subject" in config:
+                self.renew_email_subject = config["renew_email_subject"]
+            else:
+                self.renew_email_subject = "Renew your %(app)s account"
+
+            self.startup_job_max_delta = self.period * 10.0 / 100.0
+
+        if self.renew_by_email_enabled and "public_baseurl" not in synapse_config:
+            raise ConfigError("Can't send renewal emails without 'public_baseurl'")
+
+
+class RegistrationConfig(Config):
+    def read_config(self, config, **kwargs):
         self.enable_registration = bool(
             strtobool(str(config.get("enable_registration", False)))
         )
@@ -31,41 +55,48 @@ class RegistrationConfig(Config):
                 strtobool(str(config["disable_registration"]))
             )
 
+        self.account_validity = AccountValidityConfig(
+            config.get("account_validity", {}), config
+        )
+
         self.registrations_require_3pid = config.get("registrations_require_3pid", [])
         self.allowed_local_3pids = config.get("allowed_local_3pids", [])
+        self.enable_3pid_lookup = config.get("enable_3pid_lookup", True)
         self.registration_shared_secret = config.get("registration_shared_secret")
 
         self.bcrypt_rounds = config.get("bcrypt_rounds", 12)
         self.trusted_third_party_id_servers = config.get(
-            "trusted_third_party_id_servers",
-            ["matrix.org", "vector.im"],
+            "trusted_third_party_id_servers", ["matrix.org", "vector.im"]
         )
         self.default_identity_server = config.get("default_identity_server")
         self.allow_guest_access = config.get("allow_guest_access", False)
 
-        self.invite_3pid_guest = (
-            self.allow_guest_access and config.get("invite_3pid_guest", False)
+        self.invite_3pid_guest = self.allow_guest_access and config.get(
+            "invite_3pid_guest", False
         )
 
         self.auto_join_rooms = config.get("auto_join_rooms", [])
         for room_alias in self.auto_join_rooms:
             if not RoomAlias.is_valid(room_alias):
-                raise ConfigError('Invalid auto_join_rooms entry %s' % (room_alias,))
+                raise ConfigError("Invalid auto_join_rooms entry %s" % (room_alias,))
         self.autocreate_auto_join_rooms = config.get("autocreate_auto_join_rooms", True)
 
-        self.disable_msisdn_registration = (
-            config.get("disable_msisdn_registration", False)
+        self.disable_msisdn_registration = config.get(
+            "disable_msisdn_registration", False
         )
 
-    def default_config(self, generate_secrets=False, **kwargs):
+    def generate_config_section(self, generate_secrets=False, **kwargs):
         if generate_secrets:
             registration_shared_secret = 'registration_shared_secret: "%s"' % (
                 random_string_with_symbols(50),
             )
         else:
-            registration_shared_secret = '# registration_shared_secret: <PRIVATE STRING>'
+            registration_shared_secret = (
+                "# registration_shared_secret: <PRIVATE STRING>"
+            )
 
-        return """\
+        return (
+            """\
         ## Registration ##
         #
         # Registration can be rate-limited using the parameters in the "Ratelimiting"
@@ -74,6 +105,42 @@ class RegistrationConfig(Config):
         # Enable registration for new users.
         #
         #enable_registration: false
+
+        # Optional account validity configuration. This allows for accounts to be denied
+        # any request after a given period.
+        #
+        # ``enabled`` defines whether the account validity feature is enabled. Defaults
+        # to False.
+        #
+        # ``period`` allows setting the period after which an account is valid
+        # after its registration. When renewing the account, its validity period
+        # will be extended by this amount of time. This parameter is required when using
+        # the account validity feature.
+        #
+        # ``renew_at`` is the amount of time before an account's expiry date at which
+        # Synapse will send an email to the account's email address with a renewal link.
+        # This needs the ``email`` and ``public_baseurl`` configuration sections to be
+        # filled.
+        #
+        # ``renew_email_subject`` is the subject of the email sent out with the renewal
+        # link. ``%%(app)s`` can be used as a placeholder for the ``app_name`` parameter
+        # from the ``email`` section.
+        #
+        # Once this feature is enabled, Synapse will look for registered users without an
+        # expiration date at startup and will add one to every account it found using the
+        # current settings at that time.
+        # This means that, if a validity period is set, and Synapse is restarted (it will
+        # then derive an expiration date from the current validity period), and some time
+        # after that the validity period changes and Synapse is restarted, the users'
+        # expiration dates won't be updated unless their account is manually renewed. This
+        # date will be randomly selected within a range [now + period - d ; now + period],
+        # where d is equal to 10%% of the validity period.
+        #
+        #account_validity:
+        #  enabled: True
+        #  period: 6w
+        #  renew_at: 1w
+        #  renew_email_subject: "Renew your %%(app)s account"
 
         # The user must provide all of the below types of 3PID when registering.
         #
@@ -96,6 +163,10 @@ class RegistrationConfig(Config):
         #    pattern: '.*@vector\\.im'
         #  - medium: msisdn
         #    pattern: '\\+44'
+
+        # Enable 3PIDs lookup requests to identity servers from this server.
+        #
+        #enable_3pid_lookup: true
 
         # If set, allows registration of standard or admin accounts by anyone who
         # has the shared secret, even if registration is otherwise disabled.
@@ -147,17 +218,19 @@ class RegistrationConfig(Config):
         # users cannot be auto-joined since they do not exist.
         #
         #autocreate_auto_join_rooms: true
-        """ % locals()
+        """
+            % locals()
+        )
 
     def add_arguments(self, parser):
         reg_group = parser.add_argument_group("registration")
         reg_group.add_argument(
-            "--enable-registration", action="store_true", default=None,
-            help="Enable registration for new users."
+            "--enable-registration",
+            action="store_true",
+            default=None,
+            help="Enable registration for new users.",
         )
 
     def read_arguments(self, args):
         if args.enable_registration is not None:
-            self.enable_registration = bool(
-                strtobool(str(args.enable_registration))
-            )
+            self.enable_registration = bool(strtobool(str(args.enable_registration)))

@@ -227,11 +227,24 @@ following regular expressions::
     ^/_matrix/client/(api/v1|r0|unstable)/account/3pid$
     ^/_matrix/client/(api/v1|r0|unstable)/keys/query$
     ^/_matrix/client/(api/v1|r0|unstable)/keys/changes$
+    ^/_matrix/client/versions$
+    ^/_matrix/client/(api/v1|r0|unstable)/voip/turnServer$
+
+Additionally, the following REST endpoints can be handled for GET requests::
+
+    ^/_matrix/client/(api/v1|r0|unstable)/pushrules/.*$
 
 Additionally, the following REST endpoints can be handled, but all requests must
 be routed to the same instance::
 
     ^/_matrix/client/(r0|unstable)/register$
+
+Pagination requests can also be handled, but all requests with the same path
+room must be routed to the same instance. Additionally, care must be taken to
+ensure that the purge history admin API is not used while pagination requests
+for the room are in flight::
+
+    ^/_matrix/client/(api/v1|r0|unstable)/rooms/.*/messages$
 
 
 ``synapse.app.user_dir``

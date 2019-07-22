@@ -23,7 +23,7 @@ class PostgresEngine(object):
         self.module = database_module
         self.module.extensions.register_type(self.module.extensions.UNICODE)
         self.synchronous_commit = database_config.get("synchronous_commit", True)
-        self._version = None   # unknown as yet
+        self._version = None  # unknown as yet
 
     def check_database(self, txn):
         txn.execute("SHOW SERVER_ENCODING")
@@ -31,8 +31,7 @@ class PostgresEngine(object):
         if rows and rows[0][0] != "UTF8":
             raise IncorrectDatabaseSetup(
                 "Database has incorrect encoding: '%s' instead of 'UTF8'\n"
-                "See docs/postgres.rst for more information."
-                % (rows[0][0],)
+                "See docs/postgres.rst for more information." % (rows[0][0],)
             )
 
     def convert_param_style(self, sql):
@@ -45,6 +44,10 @@ class PostgresEngine(object):
         # revision numbers into two-decimal-digit numbers and appending them
         # together. For example, version 8.1.5 will be returned as 80105
         self._version = db_conn.server_version
+
+        # Are we on a supported PostgreSQL version?
+        if self._version < 90500:
+            raise RuntimeError("Synapse requires PostgreSQL 9.5+ or above.")
 
         db_conn.set_isolation_level(
             self.module.extensions.ISOLATION_LEVEL_REPEATABLE_READ
@@ -65,9 +68,9 @@ class PostgresEngine(object):
     @property
     def can_native_upsert(self):
         """
-        Can we use native UPSERTs? This requires PostgreSQL 9.5+.
+        Can we use native UPSERTs?
         """
-        return self._version >= 90500
+        return True
 
     def is_deadlock(self, error):
         if isinstance(error, self.module.DatabaseError):
@@ -103,12 +106,6 @@ class PostgresEngine(object):
 
         # https://www.postgresql.org/docs/current/libpq-status.html#LIBPQ-PQSERVERVERSION
         if numver >= 100000:
-            return "%i.%i" % (
-                numver / 10000, numver % 10000,
-            )
+            return "%i.%i" % (numver / 10000, numver % 10000)
         else:
-            return "%i.%i.%i" % (
-                numver / 10000,
-                (numver % 10000) / 100,
-                numver % 100,
-            )
+            return "%i.%i.%i" % (numver / 10000, (numver % 10000) / 100, numver % 100)

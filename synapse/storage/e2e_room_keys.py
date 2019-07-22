@@ -23,7 +23,6 @@ from ._base import SQLBaseStore
 
 
 class EndToEndRoomKeyStore(SQLBaseStore):
-
     @defer.inlineCallbacks
     def get_e2e_room_key(self, user_id, version, room_id, session_id):
         """Get the encrypted E2E room key for a given session from a given
@@ -88,18 +87,16 @@ class EndToEndRoomKeyStore(SQLBaseStore):
             },
             values={
                 "version": version,
-                "first_message_index": room_key['first_message_index'],
-                "forwarded_count": room_key['forwarded_count'],
-                "is_verified": room_key['is_verified'],
-                "session_data": json.dumps(room_key['session_data']),
+                "first_message_index": room_key["first_message_index"],
+                "forwarded_count": room_key["forwarded_count"],
+                "is_verified": room_key["is_verified"],
+                "session_data": json.dumps(room_key["session_data"]),
             },
             lock=False,
         )
 
     @defer.inlineCallbacks
-    def get_e2e_room_keys(
-        self, user_id, version, room_id=None, session_id=None
-    ):
+    def get_e2e_room_keys(self, user_id, version, room_id=None, session_id=None):
         """Bulk get the E2E room keys for a given backup, optionally filtered to a given
         room, or a given session.
 
@@ -121,16 +118,13 @@ class EndToEndRoomKeyStore(SQLBaseStore):
         try:
             version = int(version)
         except ValueError:
-            defer.returnValue({'rooms': {}})
+            defer.returnValue({"rooms": {}})
 
-        keyvalues = {
-            "user_id": user_id,
-            "version": version,
-        }
+        keyvalues = {"user_id": user_id, "version": version}
         if room_id:
-            keyvalues['room_id'] = room_id
+            keyvalues["room_id"] = room_id
             if session_id:
-                keyvalues['session_id'] = session_id
+                keyvalues["session_id"] = session_id
 
         rows = yield self._simple_select_list(
             table="e2e_room_keys",
@@ -147,10 +141,10 @@ class EndToEndRoomKeyStore(SQLBaseStore):
             desc="get_e2e_room_keys",
         )
 
-        sessions = {'rooms': {}}
+        sessions = {"rooms": {}}
         for row in rows:
-            room_entry = sessions['rooms'].setdefault(row['room_id'], {"sessions": {}})
-            room_entry['sessions'][row['session_id']] = {
+            room_entry = sessions["rooms"].setdefault(row["room_id"], {"sessions": {}})
+            room_entry["sessions"][row["session_id"]] = {
                 "first_message_index": row["first_message_index"],
                 "forwarded_count": row["forwarded_count"],
                 "is_verified": row["is_verified"],
@@ -160,9 +154,7 @@ class EndToEndRoomKeyStore(SQLBaseStore):
         defer.returnValue(sessions)
 
     @defer.inlineCallbacks
-    def delete_e2e_room_keys(
-        self, user_id, version, room_id=None, session_id=None
-    ):
+    def delete_e2e_room_keys(self, user_id, version, room_id=None, session_id=None):
         """Bulk delete the E2E room keys for a given backup, optionally filtered to a given
         room or a given session.
 
@@ -180,19 +172,14 @@ class EndToEndRoomKeyStore(SQLBaseStore):
             A deferred of the deletion transaction
         """
 
-        keyvalues = {
-            "user_id": user_id,
-            "version": int(version),
-        }
+        keyvalues = {"user_id": user_id, "version": int(version)}
         if room_id:
-            keyvalues['room_id'] = room_id
+            keyvalues["room_id"] = room_id
             if session_id:
-                keyvalues['session_id'] = session_id
+                keyvalues["session_id"] = session_id
 
         yield self._simple_delete(
-            table="e2e_room_keys",
-            keyvalues=keyvalues,
-            desc="delete_e2e_room_keys",
+            table="e2e_room_keys", keyvalues=keyvalues, desc="delete_e2e_room_keys"
         )
 
     @staticmethod
@@ -200,11 +187,11 @@ class EndToEndRoomKeyStore(SQLBaseStore):
         txn.execute(
             "SELECT MAX(version) FROM e2e_room_keys_versions "
             "WHERE user_id=? AND deleted=0",
-            (user_id,)
+            (user_id,),
         )
         row = txn.fetchone()
         if not row:
-            raise StoreError(404, 'No current backup version')
+            raise StoreError(404, "No current backup version")
         return row[0]
 
     def get_e2e_room_keys_version_info(self, user_id, version=None):
@@ -238,24 +225,15 @@ class EndToEndRoomKeyStore(SQLBaseStore):
             result = self._simple_select_one_txn(
                 txn,
                 table="e2e_room_keys_versions",
-                keyvalues={
-                    "user_id": user_id,
-                    "version": this_version,
-                    "deleted": 0,
-                },
-                retcols=(
-                    "version",
-                    "algorithm",
-                    "auth_data",
-                ),
+                keyvalues={"user_id": user_id, "version": this_version, "deleted": 0},
+                retcols=("version", "algorithm", "auth_data"),
             )
             result["auth_data"] = json.loads(result["auth_data"])
             result["version"] = str(result["version"])
             return result
 
         return self.runInteraction(
-            "get_e2e_room_keys_version_info",
-            _get_e2e_room_keys_version_info_txn
+            "get_e2e_room_keys_version_info", _get_e2e_room_keys_version_info_txn
         )
 
     def create_e2e_room_keys_version(self, user_id, info):
@@ -273,11 +251,11 @@ class EndToEndRoomKeyStore(SQLBaseStore):
         def _create_e2e_room_keys_version_txn(txn):
             txn.execute(
                 "SELECT MAX(version) FROM e2e_room_keys_versions WHERE user_id=?",
-                (user_id,)
+                (user_id,),
             )
             current_version = txn.fetchone()[0]
             if current_version is None:
-                current_version = '0'
+                current_version = "0"
 
             new_version = str(int(current_version) + 1)
 
@@ -309,14 +287,9 @@ class EndToEndRoomKeyStore(SQLBaseStore):
 
         return self._simple_update(
             table="e2e_room_keys_versions",
-            keyvalues={
-                "user_id": user_id,
-                "version": version,
-            },
-            updatevalues={
-                "auth_data": json.dumps(info["auth_data"]),
-            },
-            desc="update_e2e_room_keys_version"
+            keyvalues={"user_id": user_id, "version": version},
+            updatevalues={"auth_data": json.dumps(info["auth_data"])},
+            desc="update_e2e_room_keys_version",
         )
 
     def delete_e2e_room_keys_version(self, user_id, version=None):
@@ -341,16 +314,10 @@ class EndToEndRoomKeyStore(SQLBaseStore):
             return self._simple_update_one_txn(
                 txn,
                 table="e2e_room_keys_versions",
-                keyvalues={
-                    "user_id": user_id,
-                    "version": this_version,
-                },
-                updatevalues={
-                    "deleted": 1,
-                }
+                keyvalues={"user_id": user_id, "version": this_version},
+                updatevalues={"deleted": 1},
             )
 
         return self.runInteraction(
-            "delete_e2e_room_keys_version",
-            _delete_e2e_room_keys_version_txn
+            "delete_e2e_room_keys_version", _delete_e2e_room_keys_version_txn
         )

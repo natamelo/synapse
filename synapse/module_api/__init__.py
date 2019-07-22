@@ -21,6 +21,7 @@ class ModuleApi(object):
     """A proxy object that gets passed to password auth providers so they
     can register new users etc if necessary.
     """
+
     def __init__(self, hs, auth_handler):
         self.hs = hs
 
@@ -57,7 +58,7 @@ class ModuleApi(object):
         Returns:
             str: qualified @user:id
         """
-        if username.startswith('@'):
+        if username.startswith("@"):
             return username
         return UserID(username, self.hs.hostname).to_string()
 
@@ -74,14 +75,14 @@ class ModuleApi(object):
         return self._auth_handler.check_user_exists(user_id)
 
     @defer.inlineCallbacks
-    def register(self, localpart, displayname=None):
+    def register(self, localpart, displayname=None, emails=[]):
         """Registers a new user with given localpart and optional
-           displayname.
+           displayname, emails.
 
         Args:
             localpart (str): The localpart of the new user.
-            displayname (str|None): The displayname of the new user. If None,
-                the user's displayname will default to `localpart`.
+            displayname (str|None): The displayname of the new user.
+            emails (List[str]): Emails to bind to the new user.
 
         Returns:
             Deferred: a 2-tuple of (user_id, access_token)
@@ -89,7 +90,7 @@ class ModuleApi(object):
         # Register the user
         reg = self.hs.get_registration_handler()
         user_id, access_token = yield reg.register(
-            localpart=localpart, default_display_name=displayname,
+            localpart=localpart, default_display_name=displayname, bind_emails=emails
         )
 
         defer.returnValue((user_id, access_token))

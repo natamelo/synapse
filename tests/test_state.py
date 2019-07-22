@@ -18,13 +18,14 @@ from mock import Mock
 from twisted.internet import defer
 
 from synapse.api.auth import Auth
-from synapse.api.constants import EventTypes, Membership, RoomVersions
+from synapse.api.constants import EventTypes, Membership
+from synapse.api.room_versions import RoomVersions
 from synapse.events import FrozenEvent
 from synapse.state import StateHandler, StateResolutionHandler
 
 from tests import unittest
 
-from .utils import MockClock
+from .utils import MockClock, default_config
 
 _next_event_id = 1000
 
@@ -118,7 +119,7 @@ class StateGroupStore(object):
         self._event_to_state_group[event_id] = state_group
 
     def get_room_version(self, room_id):
-        return RoomVersions.V1
+        return RoomVersions.V1.identifier
 
 
 class DictObj(dict):
@@ -159,6 +160,7 @@ class StateTestCase(unittest.TestCase):
         self.store = StateGroupStore()
         hs = Mock(
             spec_set=[
+                "config",
                 "get_datastore",
                 "get_auth",
                 "get_state_handler",
@@ -166,6 +168,7 @@ class StateTestCase(unittest.TestCase):
                 "get_state_resolution_handler",
             ]
         )
+        hs.config = default_config("tesths", True)
         hs.get_datastore.return_value = self.store
         hs.get_state_handler.return_value = None
         hs.get_clock.return_value = MockClock()
@@ -363,11 +366,11 @@ class StateTestCase(unittest.TestCase):
     def _add_depths(self, nodes, edges):
         def _get_depth(ev):
             node = nodes[ev]
-            if 'depth' not in node:
+            if "depth" not in node:
                 prevs = edges[ev]
                 depth = max(_get_depth(prev) for prev in prevs) + 1
-                node['depth'] = depth
-            return node['depth']
+                node["depth"] = depth
+            return node["depth"]
 
         for n in nodes:
             _get_depth(n)
