@@ -108,32 +108,22 @@ class RoomSolicitationStore(SQLBaseStore):
                             limit=50, only_highlight=False):
         def f(txn):
             before_clause = ""
-            #if before:
-            #    before_clause = "AND event.stream_ordering < ?"
-            #    args = [user_id, before, limit]
-            #else:
-            args = [room_id, limit]
-            args = [limit]
+            if before:
+               before_clause = "AND solicitation.id < ?"
+               args = [before, limit]
+            else:
+                args = [limit]
 
-            #if only_highlight:
-            #    if len(before_clause) > 0:
-            #        before_clause += " "
-            #    before_clause += "AND epa.highlight = 1"
-
-            # NB. This assumes event_ids are globally unique since
-            # it makes the query easier to index
             sql = (
                 "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
                 " solicitation.action, solicitation.equipment_type, solicitation.equipment_code,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
-                " WHERE solicitation.event_id = event.event_id"
-                " ORDER BY event.stream_ordering DESC"
+                " WHERE solicitation.event_id = event.event_id %s"
+                " ORDER BY solicitation.id DESC"
                 " LIMIT ?"
-                ##and room_name.room_id = event.room_id
-                ##" and event.room_id = ?"
-                #% (before_clause,)
+                 % (before_clause)
             )
             txn.execute(sql, args)
             return self.cursor_to_dict(txn)
@@ -141,8 +131,6 @@ class RoomSolicitationStore(SQLBaseStore):
         solicitations = yield self.runInteraction(
             "get_solicitations", f
         )
-        #for pa in push_actions:
-        #    pa["actions"] = _deserialize_action(pa["actions"], pa["highlight"])
         defer.returnValue(solicitations)
 
     @defer.inlineCallbacks

@@ -50,35 +50,27 @@ class SolicitationsServlet(RestServlet):
 
         limit = min(limit, 500)
 
-        solicitation_events = yield self.store.get_solicitation_events(limit=limit, before=from_token)
+        solicitations = yield self.store.get_solicitations(room_id, user_id=None, before=from_token, limit=limit)
 
-        event_id_list = [solicitation["event_id"] for solicitation in solicitation_events]
+        event_id_list = [solicitation["event_id"] for solicitation in solicitations]
         notif_events = yield self.store.get_events(event_id_list)
-
-        grouped_solicitations = {}
-        for solicitation in solicitation_events:
-            solicitation_id = str(solicitation['solicitation_id'])
-            event_id = str(solicitation['event_id'])
-            if solicitation_id not in grouped_solicitations:
-                grouped_solicitations[solicitation_id] = yield self.store.get_solicitation(event_id, solicitation_id)
-
         returned_solicitations = []
         next_token = None
 
-        for solicitation_event in solicitation_events:
-            solicitation_id = solicitation_event['solicitation_id']
-            event_id = solicitation_event['event_id']
-            
-            solicitation = grouped_solicitations[solicitation_id]
+        for solicitation in solicitations:
+            solicitation_id = solicitation['id']
+            event_id = solicitation['event_id']
 
             event = serialize_event(
                 notif_events[event_id],
                 self.clock.time_msec(),
                 event_format=format_event_for_client_v2_without_room_id,
             )
+
             event['content']['solicitation_number']=solicitation_id
             event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
-            event['content']['atual_status'] = solicitation['status']
+            event['content']['status'] = solicitation['status']
+            
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
@@ -90,13 +82,12 @@ class SolicitationsServlet(RestServlet):
             solicitation["read"] = False
     
             returned_solicitations.append(returned_pa)
-            next_token = str(solicitation['stream_ordering'])
+            next_token = str(solicitation_id)
 
         defer.returnValue((200, {
             "notifications": returned_solicitations,
             "next_token": next_token,
         })) 
-
 
 # TODO: Needs unit testing
 class SolicitationSageCallRestServlet(RestServlet):
