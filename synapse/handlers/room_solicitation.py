@@ -76,5 +76,33 @@ class RoomSolicitationHandler(BaseHandler):
             ratelimit=True,
         )
 
+    @defer.inlineCallbacks
+    def create_smart_disturbance(self, room_id, user_id, title, substations):
+
+        requester = create_requester(user_id)
+
+        event_dict = {
+            "type": "m.room.message",
+            "content": {
+                'msgtype': 'm.text',
+                'body': title,
+                'status': 'PERTURBACAO_INFORMADA',
+                'substations': substations
+            },
+            "room_id": room_id,
+            "sender": requester.user.to_string(),
+        }
+
+        event, context = yield self.event_creation_handler.create_and_no_send_nonmember_event(
+            requester,
+            event_dict
+        )
+
+        yield self.event_creation_handler.send_nonmember_event(
+            requester,
+            event,
+            context,
+            ratelimit=True,
+        )
 
 

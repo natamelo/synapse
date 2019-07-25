@@ -153,8 +153,9 @@ class UserTypes(object):
     SUPPORT = "support"
     CTEEP = "cteep"
     ONS = "ons"
+    BOT = "bot"
     SUBESTACAO = "subestacao"
-    ALL_USER_TYPES = (SUPPORT, CTEEP, ONS, SUBESTACAO, )
+    ALL_USER_TYPES = (SUPPORT, CTEEP, ONS, SUBESTACAO, BOT)
 
 
 class ActionTypes(object):
