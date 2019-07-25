@@ -86,7 +86,7 @@ class RoomSolicitationHandler(BaseHandler):
             "content": {
                 'msgtype': 'm.text',
                 'body': title,
-                'status': 'PERTURBACAO_INFORMADA',
+                'status': 'PERTURBACAO_INTERNA_INFORMADA',
                 'substations': substations
             },
             "room_id": room_id,
