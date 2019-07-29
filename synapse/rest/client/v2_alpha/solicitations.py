@@ -205,7 +205,47 @@ class InformStatusRestServlet(RestServlet):
     def on_GET(self, request):
         return (200, "Not implemented")
 
+class DisturbanceSmartCallRestServlet(RestServlet):
+    PATTERNS = client_v2_patterns("/disturbances/smart_call$")
+
+    def __init__(self, hs):
+        super(DisturbanceSmartCallRestServlet, self).__init__()
+        self.event_creation_handler = hs.get_event_creation_handler()
+        self.room_solicitation_handler = hs.get_room_solicitation_handler()
+        self.store = hs.get_datastore()
+
+    @defer.inlineCallbacks
+    def on_POST(self, request):
+        content = parse_json_object_from_request(request)
+
+        user_id = content['user_id']
+        room_id = content['room_id']
+        title = content['title']
+        substations = content['substations']
+
+        for substation_code in substations:
+            if substation_code not in SubstationCode.ALL_SUBSTATION_CODES:
+                defer.returnValue((400, {
+                    "error": "Invalid Substation Code"
+                }))
+
+        yield self.room_solicitation_handler.create_smart_disturbance(
+            room_id=room_id,
+            user_id=user_id,
+            title=title,
+            substations=substations,
+        )
+
+        defer.returnValue((201, {
+            "Message": "Confirmed Smart Disturbance!"
+        }))
+
+    def on_GET(self, request):
+        return (200, "Not implemented")
+
+
 def register_servlets(hs, http_server):
     SolicitationsServlet(hs).register(http_server)
     SolicitationSageCallRestServlet(hs).register(http_server)
+    DisturbanceSmartCallRestServlet(hs).register(http_server)
     InformStatusRestServlet(hs).register(http_server)
