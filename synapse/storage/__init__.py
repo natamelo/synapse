@@ -123,6 +123,9 @@ class DataStore(RoomMemberStore, RoomStore,
 
         self._solicitation_list_id_gen = IdGenerator(db_conn, "solicitations", "id")
         self._intervention_list_id_gen = IdGenerator(db_conn, "interventions", "id")
+        self._solicitation_event_list_id_gen = IdGenerator(
+            db_conn, "solicitation_event", "stream_ordering",
+        )
 
         self._access_tokens_id_gen = IdGenerator(db_conn, "access_tokens", "id")
         self._event_reports_id_gen = IdGenerator(db_conn, "event_reports", "id")
