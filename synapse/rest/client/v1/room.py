@@ -214,17 +214,19 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
             event_dict['origin_server_ts'] = parse_integer(request, "ts", 0)
 
         event = None
+        state = None
+        event_id = None
 
         if 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
-            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='Ciente')
+            state = 'Ciente'
 
             event_dict['content']["status"] = "Ciente"
             event_dict['content']["action"] = "update"
             event_dict['content']["old_event_id"] = event_id;
         elif 'Solicitação Cancelada' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
-            self.room_solicitation_handler.update_solicitation(event_id=event_id, state='Cancelada')
+            state = 'Cancelada'
 
             event_dict['content']["status"] = "Cancelada"
             event_dict['content']["action"] = "update"
@@ -233,16 +235,16 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
         if 'action' in content:
             if content['action'] == 'create_intervention':
                 event_dict['content']["status"] = "Solicitada"
-                event = yield self.room_intervention_handler.create_intervention_and_send_event(requester, event_dict, 'Solicitada')
+                state = 'Solicitada'
             elif content['action'] == 'authorize_intervention':
                 event_dict['content']["status"] = "Autorizada"
-                event = yield self.room_intervention_handler.update_intervention(room_id, 'Autorizada')
+                state = 'Autorizada'
             elif content['action'] == 'inform_cancelation':
                 event_dict['content']["status"] = "Cancelamento Informado"
-                event = yield self.room_intervention_handler.update_intervention(room_id, 'Cancelamento Informado')
+                state = 'Cancelamento Informado'
             elif content['action'] == 'check_cancelation':
                 event_dict['content']["status"] = "Ciente do Cancelamento"
-                event = yield self.room_intervention_handler.update_intervention(room_id, 'Ciente do Cancelamento')
+                state = 'Ciente do Cancelamento'
             event_dict['content']["action"] = "update_intervention"
 
         if event is None:
@@ -251,7 +253,9 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
                 event_dict,
                 txn_id=txn_id,
             )
-
+            if state is not None:
+                yield self.room_solicitation_handler.update_solicitation(old_event_id=event_id, event_id=event.event_id, state=state)
+        
         defer.returnValue((200, {"event_id": event.event_id}))
 
     def on_GET(self, request, room_id, event_type, txn_id):

@@ -35,8 +35,13 @@ class RoomSolicitationHandler(BaseHandler):
     def create_solicitation(self, event_id, state):
         self.store.create_solicitation(event_id=event_id, state=state)
 
-    def update_solicitation(self, event_id, state):
-        self.store.update_solicitation(event_id=event_id, state=state)
+    @defer.inlineCallbacks
+    def update_solicitation(self, old_event_id, event_id, state):
+        solicitation_id = yield self.store.get_solicitation_id(old_event_id=old_event_id, limit=500)
+        self.store.update_solicitation_by_id(
+            id=solicitation_id,
+            event_id=event_id,
+            state=state)
 
     @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
@@ -51,7 +56,9 @@ class RoomSolicitationHandler(BaseHandler):
             "content": {
                 'msgtype': 'm.text',
                 'body': "Solicitamos " + str(action) + " " + str(equipment_type) + " " + equipment_code,
-                'status': 'Solicitada'
+                'solicitation_goal': str(action) + " " + str(equipment_type) + " " + equipment_code,
+                'status': 'Solicitada',
+                'atual_status': 'Solicitada',
             },
             "room_id": room_id,
             "sender": requester.user.to_string(),
@@ -62,12 +69,16 @@ class RoomSolicitationHandler(BaseHandler):
             event_dict
         )
 
-        self.store.create_sage_call_solicitation(sender_user_id=sender_user_id,
+        yield self.store.create_sage_call_solicitation(sender_user_id=sender_user_id,
                                                  action=action,
                                                  substation_code=substation_code,
                                                  equipment_type=equipment_type,
                                                  equipment_code=equipment_code,
                                                  event_id=event.event_id)
+
+        
+        solicitation_id = yield self.store.get_solicitation_id(event.event_id)
+        event['content']['solicitation_number'] = solicitation_id
 
         yield self.event_creation_handler.send_nonmember_event(
             requester,
@@ -104,5 +115,54 @@ class RoomSolicitationHandler(BaseHandler):
             context,
             ratelimit=True,
         )
+        
+    @defer.inlineCallbacks   
+    def inform_status(self, sender_user_id, status, substation_code,
+                              action, equipment_type, equipment_code):
 
+        requester = create_requester(sender_user_id)
 
+        room_id = yield self.store.get_room_id_by_name(substation_code)
+        solicitations = yield self.store.get_solicitations_by_room(room_id=room_id, limit=500)
+
+        founded_solicitation = None
+
+        for solicitation in solicitations:
+            if solicitation['equipment_code'] == equipment_code and solicitation['equipment_type'] == equipment_type and solicitation['status'] == 'Ciente' and solicitation['action'] == action:
+                founded_solicitation = solicitation
+
+        if founded_solicitation is not None:
+            
+            event_dict = {
+                "type": "m.room.message",
+                "content": {
+                    'msgtype': 'm.text',
+                    'body': "O " + str(equipment_type) +  " " + equipment_code + " foi " + status,
+                    'solicitation_number': founded_solicitation['id'],
+                    'status': 'Concluida'
+                },
+                "action": "atualização",
+                "room_id": room_id,
+                "sender": requester.user.to_string(),
+            }
+
+            event, context = yield self.event_creation_handler.create_and_no_send_nonmember_event(
+                requester,
+                event_dict
+            )
+
+            self.store.update_solicitation_by_id(
+                id=founded_solicitation['id'],
+                event_id=event.event_id,
+                state='Concluida')
+
+            yield self.event_creation_handler.send_nonmember_event(
+                requester,
+                event,
+                context,
+                ratelimit=True,
+            )
+
+            return True
+        else:
+            return False

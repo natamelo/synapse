@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import logging
+import collections
 
 from twisted.internet import defer
 from synapse.api.constants import ActionTypes, EquipmentTypes, SubstationCode
@@ -43,28 +44,33 @@ class SolicitationsServlet(RestServlet):
         requester = yield self.auth.get_user_by_req(request)
         user_id = requester.user.to_string()
 
+        from_token = parse_string(request, "from", required=False)
         limit = parse_integer(request, "limit", default=50)
         room_id = parse_string(request, "room_id", required=False)
 
         limit = min(limit, 500)
 
-        solicitations = yield self.store.get_solicitations(room_id=room_id, limit=limit)
+        solicitations = yield self.store.get_solicitations(room_id, user_id=None, before=from_token, limit=limit)
 
         event_id_list = [solicitation["event_id"] for solicitation in solicitations]
-
         notif_events = yield self.store.get_events(event_id_list)
-
         returned_solicitations = []
-
         next_token = None
 
         for solicitation in solicitations:
+            solicitation_id = solicitation['id']
+            event_id = solicitation['event_id']
+
             event = serialize_event(
-                notif_events[solicitation["event_id"]],
+                notif_events[event_id],
                 self.clock.time_msec(),
                 event_format=format_event_for_client_v2_without_room_id,
             )
-            event['content']["status"] = solicitation["status"]
+
+            event['content']['solicitation_number']=solicitation_id
+            event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
+            event['content']['status'] = solicitation['status']
+            
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
@@ -73,24 +79,15 @@ class SolicitationsServlet(RestServlet):
                 "event": event,
             }
 
-            # if pa["room_id"] not in receipts_by_room:
             solicitation["read"] = False
-            # else:
-            #    receipt = receipts_by_room[pa["room_id"]]
-
-            #    returned_pa["read"] = (
-            #        receipt["topological_ordering"], receipt["stream_ordering"]
-            #    ) >= (
-            #        pa["topological_ordering"], pa["stream_ordering"]
-            #    )
+    
             returned_solicitations.append(returned_pa)
-            next_token = str(solicitation["stream_ordering"])
+            next_token = str(solicitation_id)
 
         defer.returnValue((200, {
             "notifications": returned_solicitations,
             "next_token": next_token,
-        }))
-
+        })) 
 
 # TODO: Needs unit testing
 class SolicitationSageCallRestServlet(RestServlet):
@@ -143,6 +140,70 @@ class SolicitationSageCallRestServlet(RestServlet):
     def on_GET(self, request):
         return (200, "Not implemented")
 
+# TODO: Needs unit testing
+class InformStatusRestServlet(RestServlet):
+    PATTERNS = client_v2_patterns("/solicitations/inform_status$")
+
+    def __init__(self, hs):
+        super(InformStatusRestServlet, self).__init__()
+        self.event_creation_handler = hs.get_event_creation_handler()
+        self.room_solicitation_handler = hs.get_room_solicitation_handler()
+        self.store = hs.get_datastore()
+
+    @defer.inlineCallbacks
+    def on_PUT(self, request):
+        # requester = yield self.auth.get_user_by_req(request, allow_guest=True)
+        content = parse_json_object_from_request(request)
+
+        sender_user_id = content['sender_user_id']
+        status = content['status']
+        substation_code = content['substation_code']
+        equipment_type = content['equipment_type']
+        equipment_code = content['equipment_code']
+
+        status = str(status).lower()
+        action = None
+
+        if status == 'ligado':
+            action = 'LIGAR'
+        elif status == 'desligado':
+            action = 'DESLIGAR'
+
+        if action not in ActionTypes.ALL_ACTION_TYPES:
+            defer.returnValue((400, {
+                "error": "Invalid Action Type"
+            }))
+
+        if equipment_type not in EquipmentTypes.ALL_EQUIPMENT_TYPES:
+            defer.returnValue((400, {
+                "error": "Invalid Equipment Type"
+            }))
+
+        if substation_code not in SubstationCode.ALL_SUBSTATION_CODES:
+            defer.returnValue((400, {
+                "error": "Invalid Substation Code"
+            }))
+
+        success = yield self.room_solicitation_handler.inform_status(
+            sender_user_id=sender_user_id,
+            status=status,
+            action=action,
+            substation_code=substation_code,
+            equipment_type=equipment_type,
+            equipment_code=equipment_code,
+        )
+
+        if success:
+            defer.returnValue((201, {
+                "Message": "Solicitation status updated"
+            }))
+        else:
+            defer.returnValue((400, {
+                "Message": "Status informed are not consistent with system information"
+            }))
+
+    def on_GET(self, request):
+        return (200, "Not implemented")
 
 class DisturbanceSmartCallRestServlet(RestServlet):
     PATTERNS = client_v2_patterns("/disturbances/smart_call$")
@@ -187,3 +248,4 @@ def register_servlets(hs, http_server):
     SolicitationsServlet(hs).register(http_server)
     SolicitationSageCallRestServlet(hs).register(http_server)
     DisturbanceSmartCallRestServlet(hs).register(http_server)
+    InformStatusRestServlet(hs).register(http_server)

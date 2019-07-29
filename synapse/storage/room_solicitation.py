@@ -42,6 +42,29 @@ class RoomSolicitationStore(SQLBaseStore):
             raise StoreError(500, "Problem updating solicitation.")
 
     @defer.inlineCallbacks
+    def update_solicitation_by_id(self, id, event_id, state):
+        try:
+            event_order = yield self._solicitation_event_list_id_gen.get_next()
+            self._simple_update(
+                table="solicitations",
+                keyvalues={"id": id},
+                updatevalues={"status": state},
+                desc="update_solicitation",
+            )
+            self._simple_insert(
+                "solicitation_event",
+                {
+                    "stream_ordering": event_order,
+                    "solicitation_id": id,
+                    "event_id": event_id,
+                },
+                desc="event_for_solicitation"
+            )
+        except Exception as e:
+            logger.warning("update_solicitation with id=%s failed: %s", id, e)
+            raise StoreError(500, "Problem updating solicitation.")
+
+    @defer.inlineCallbacks
     def get_room_id_by_name(self, name):
         result = yield self._simple_select_one(table="room_names",
                                 keyvalues={"name": name},
@@ -53,16 +76,18 @@ class RoomSolicitationStore(SQLBaseStore):
             defer.returnValue(None)
 
     @defer.inlineCallbacks
-    def get_solicitation(self, event_id):
+    def get_solicitation(self, event_id, solicitation_id):
         def f(txn):
-            args = [event_id]
+            args = [solicitation_id, event_id]
 
             sql = (
-                "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
+                " SELECT solicitation.id, solicitation.event_id, solicitation.sender_user_id,"
+                " solicitation.status, solicitation.action, solicitation.substation_code,"
+                " solicitation.equipment_type, solicitation.equipment_code,event.room_id,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
-                " WHERE solicitation.event_id = event.event_id and room_name.room_id = event.room_id"
+                " WHERE solicitation.id = ? and room_name.room_id = event.room_id"
                 " and event.event_id = ?"
             )
             txn.execute(sql, args)
@@ -83,31 +108,22 @@ class RoomSolicitationStore(SQLBaseStore):
                             limit=50, only_highlight=False):
         def f(txn):
             before_clause = ""
-            #if before:
-            #    before_clause = "AND event.stream_ordering < ?"
-            #    args = [user_id, before, limit]
-            #else:
-            args = [room_id, limit]
-            args = [limit]
+            if before:
+               before_clause = "AND solicitation.id < ?"
+               args = [before, limit]
+            else:
+                args = [limit]
 
-            #if only_highlight:
-            #    if len(before_clause) > 0:
-            #        before_clause += " "
-            #    before_clause += "AND epa.highlight = 1"
-
-            # NB. This assumes event_ids are globally unique since
-            # it makes the query easier to index
             sql = (
-                "SELECT solicitation.event_id, solicitation.status, event.room_id,"
+                "SELECT solicitation.id, solicitation.event_id, solicitation.status, event.room_id,"
+                " solicitation.action, solicitation.equipment_type, solicitation.equipment_code,"
                 " event.stream_ordering, event.topological_ordering,"
                 " event.received_ts, room_name.name"
                 " FROM solicitations solicitation, events event, room_names room_name"
-                " WHERE solicitation.event_id = event.event_id"
-                " ORDER BY event.stream_ordering DESC"
+                " WHERE solicitation.event_id = event.event_id %s"
+                " ORDER BY solicitation.id DESC"
                 " LIMIT ?"
-                ##and room_name.room_id = event.room_id
-                ##" and event.room_id = ?"
-                #% (before_clause,)
+                 % (before_clause)
             )
             txn.execute(sql, args)
             return self.cursor_to_dict(txn)
@@ -115,17 +131,86 @@ class RoomSolicitationStore(SQLBaseStore):
         solicitations = yield self.runInteraction(
             "get_solicitations", f
         )
-        #for pa in push_actions:
-        #    pa["actions"] = _deserialize_action(pa["actions"], pa["highlight"])
         defer.returnValue(solicitations)
 
+    @defer.inlineCallbacks
+    def get_solicitation_events(self, limit=50, before=None):
+        def f(txn):
+            before_clause = ""
+            
+            if before:
+                before_clause = "WHERE solicitation_event.stream_ordering < ?"
+                args = [before, limit]
+            else:
+                args = [limit]
+
+            sql = (
+                " SELECT solicitation_event.*"
+                " FROM solicitation_event"
+                " %s "
+                " ORDER BY solicitation_event.stream_ordering DESC"
+                " LIMIT ?"
+                % (before_clause)
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        solicitations = yield self.runInteraction(
+            "get_solicitation_events", f
+        )
+        defer.returnValue(solicitations)
+
+
+    @defer.inlineCallbacks
+    def get_solicitation_id(self, old_event_id, limit=50):
+        
+        result = yield self._simple_select_one(
+            "solicitation_event",
+            dict(event_id=old_event_id),
+            ["solicitation_id"],
+            desc="get_solicitation_event",
+        )
+        if result:
+            defer.returnValue(result.get("solicitation_id"))
+            return
+        defer.returnValue(None)
+
+    @defer.inlineCallbacks
+    def get_solicitations_by_room(self, room_id, user_id=None, before=None,
+                            limit=50, only_highlight=False):
+        def f(txn):
+                  
+            args = [room_id, limit]
+
+            sql = (
+                "SELECT  solicitation.id, solicitation.event_id, solicitation.status, solicitation.action,"
+                " solicitation.equipment_type, solicitation.equipment_code, event.room_id,"
+                " event.stream_ordering, event.topological_ordering,"
+                " event.received_ts, room_name.name"
+                " FROM solicitations solicitation, events event, room_names room_name"
+                " WHERE solicitation.event_id = event.event_id AND event.room_id = ?"
+                " ORDER BY event.stream_ordering DESC"
+                " LIMIT ?"
+            )
+            txn.execute(sql, args)
+            return self.cursor_to_dict(txn)
+
+        solicitations = yield self.runInteraction(
+            "get_solicitations_by_room", f
+        )
+
+        defer.returnValue(solicitations)
+
+    @defer.inlineCallbacks
     def create_sage_call_solicitation(self, sender_user_id, action, substation_code,
                                       equipment_type, equipment_code, event_id):
         try:
-            self._simple_insert(
+            id = yield self._solicitation_list_id_gen.get_next()
+            event_order = yield self._solicitation_event_list_id_gen.get_next()
+            yield self._simple_insert(
                 table="solicitations",
                 values={
-                    "id": self._solicitation_list_id_gen.get_next(),
+                    "id": id,
                     "status": "Solicitada",
                     "sender_user_id": sender_user_id,
                     "action": action,
@@ -134,6 +219,15 @@ class RoomSolicitationStore(SQLBaseStore):
                     "equipment_code": equipment_code,
                     "event_id": event_id
                 }
+            )
+            yield self._simple_insert(
+                "solicitation_event",
+                {   
+                    "stream_ordering": event_order,
+                    "solicitation_id": id,
+                    "event_id": event_id,
+                },
+                desc="event_for_solicitation"
             )
         except Exception as e:
             logger.warning("create_sage_call_solicitation for sender_user=%s failed: %s", sender_user_id, e)
