@@ -49,7 +49,7 @@ class RoomSolicitationHandler(BaseHandler):
 
         requester = create_requester(sender_user_id)
 
-        room_id = yield self.store.get_room_id_by_name(substation_code)
+        room_id = yield self.store.get_room_id_by_name_and_group(substation_code, '+grupo_controle_tensao')
 
         event_dict = {
             "type": "m.room.message",
