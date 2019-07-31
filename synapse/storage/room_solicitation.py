@@ -76,6 +76,31 @@ class RoomSolicitationStore(SQLBaseStore):
             defer.returnValue(None)
 
     @defer.inlineCallbacks
+    def get_room_id_by_name_and_group(self, se, group):
+        def f(txn):
+            group_like_clause = group + "%"
+            args = [se, group_like_clause]
+
+            sql = (
+                " SELECT r.room_id from room_names r, group_rooms g "
+                " where r.name = ? and r.room_id = g.room_id "
+                " and g.group_id like ?"
+            )
+            txn.execute(sql, args)
+
+            return self.cursor_to_dict(txn)
+
+        rooms_id = yield self.runInteraction(
+            "get_room_id_by_name_and_group", f
+        )
+
+        room_id = None
+        if rooms_id:
+            room_id = rooms_id[0]['room_id']
+
+        defer.returnValue(room_id)
+
+    @defer.inlineCallbacks
     def get_solicitation(self, event_id, solicitation_id):
         def f(txn):
             args = [solicitation_id, event_id]
