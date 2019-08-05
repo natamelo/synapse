@@ -32,6 +32,11 @@ class RoomSolicitationHandler(BaseHandler):
         self.state = hs.get_state_handler()
         self.event_creation_handler = hs.get_event_creation_handler()
 
+    @defer.inlineCallbacks
+    def get_solicitation_id(self, event_id):
+        solicitation_id = yield self.store.get_solicitation_id(old_event_id=event_id, limit=500)
+        return solicitation_id
+
     def create_solicitation(self, event_id, state):
         self.store.create_solicitation(event_id=event_id, state=state)
 

@@ -217,35 +217,51 @@ class RoomSendEventRestServlet(ClientV1RestServlet):
         state = None
         event_id = None
 
-        if 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
+        if 'Finalizado' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
+            event_id = content['m.relates_to']['m.in_reply_to']['event_id']
+            state = 'Finalizado'
+            sol_number = yield self.room_solicitation_handler.get_solicitation_id(event_id)
+
+            event_dict['content']["status"] = "Finalizado"
+            event_dict['content']["action"] = "update_solicitation"
+            event_dict['content']["old_event_id"] = event_id
+            event_dict['content']['solicitation_number'] = sol_number 
+        elif 'Ciente' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
             state = 'Ciente'
+            sol_number = yield self.room_solicitation_handler.get_solicitation_id(event_id)
 
             event_dict['content']["status"] = "Ciente"
-            event_dict['content']["action"] = "update"
-            event_dict['content']["old_event_id"] = event_id;
+            event_dict['content']["action"] = "update_solicitation"
+            event_dict['content']["old_event_id"] = event_id
+            event_dict['content']['solicitation_number'] = sol_number 
         elif 'Solicitação Cancelada' in content['body'] and 'm.relates_to' in content and 'm.in_reply_to' in content['m.relates_to']:
             event_id = content['m.relates_to']['m.in_reply_to']['event_id']
             state = 'Cancelada'
+            sol_number = yield self.room_solicitation_handler.get_solicitation_id(event_id)
 
             event_dict['content']["status"] = "Cancelada"
-            event_dict['content']["action"] = "update"
-            event_dict['content']["old_event_id"] = event_id;
+            event_dict['content']["action"] = "update_solicitation"
+            event_dict['content']["old_event_id"] = event_id
+            event_dict['content']['solicitation_number'] = sol_number 
 
         if 'action' in content:
             if content['action'] == 'create_intervention':
                 event_dict['content']["status"] = "Solicitada"
                 state = 'Solicitada'
+                event_dict['content']["action"] = "update_intervention"
             elif content['action'] == 'authorize_intervention':
                 event_dict['content']["status"] = "Autorizada"
                 state = 'Autorizada'
+                event_dict['content']["action"] = "update_intervention"
             elif content['action'] == 'inform_cancelation':
                 event_dict['content']["status"] = "Cancelamento Informado"
                 state = 'Cancelamento Informado'
+                event_dict['content']["action"] = "update_intervention"
             elif content['action'] == 'check_cancelation':
                 event_dict['content']["status"] = "Ciente do Cancelamento"
                 state = 'Ciente do Cancelamento'
-            event_dict['content']["action"] = "update_intervention"
+                event_dict['content']["action"] = "update_intervention"
 
         if event is None:
             event = yield self.event_creation_handler.create_and_send_nonmember_event(
