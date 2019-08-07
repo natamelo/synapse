@@ -71,6 +71,11 @@ class SolicitationsServlet(RestServlet):
             event['content']['solicitation_goal']=solicitation['action'] + ' ' + solicitation['equipment_type'] + ' ' + solicitation['equipment_code']
             event['content']['status'] = solicitation['status']
             
+            if solicitation['status'] == 'Solicitada':
+                event['content']['open_solicitation'] = True
+            else:
+                event['content']['open_solicitation'] = False
+            
             returned_pa = {
                 "room_id": solicitation["room_id"],
                 "profile_tag": solicitation["name"],
